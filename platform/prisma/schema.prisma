@@ -1,0 +1,117 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+enum PlanTier {
+  FREE
+  PRO
+  ENTERPRISE
+}
+
+enum KeyStatus {
+  ACTIVE
+  REVOKED
+}
+
+enum SyncStatus {
+  SUCCESS
+  FAILED
+  IN_PROGRESS
+}
+
+// 1. Organizations / Workspaces
+model Organization {
+  id               String   @id @default(uuid()) @db.Uuid
+  name             String
+  planTier         PlanTier @default(FREE) @map("plan_tier")
+  stripeCustomerId String?  @map("stripe_customer_id")
+  createdAt        DateTime @default(now()) @map("created_at")
+
+  apiKeys ApiKey[]
+
+  @@map("organizations")
+}
+
+// 2. Self-Issued API Keys (Hashed Storage)
+model ApiKey {
+  id           String    @id @default(uuid()) @db.Uuid
+  orgId        String    @map("org_id") @db.Uuid
+  keyHash      String    @unique @map("key_hash")
+  keyPrefix    String    @map("key_prefix") // e.g., "fg_live_9a2b"
+  label        String
+  status       KeyStatus @default(ACTIVE)
+  monthlyQuota Int       @default(1000) @map("monthly_quota")
+  currentUsage Int       @default(0) @map("current_usage")
+  createdAt    DateTime  @default(now()) @map("created_at")
+
+  organization Organization    @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  requestLogs  ApiRequestLog[]
+
+  @@map("api_keys")
+}
+
+// 3. API Audit Logging
+model ApiRequestLog {
+  id         String   @id @default(uuid()) @db.Uuid
+  keyId      String   @map("key_id") @db.Uuid
+  endpoint   String
+  action     String
+  statusCode Int      @map("status_code")
+  latencyMs  Int      @map("latency_ms")
+  timestamp  DateTime @default(now())
+
+  apiKey ApiKey @relation(fields: [keyId], references: [id], onDelete: Cascade)
+
+  @@map("api_request_logs")
+}
+
+// 4. Data Independence Pipeline: Registered Open Sources
+model DataSource {
+  id           String   @id @default(uuid()) @db.Uuid
+  name         String
+  targetUrl    String   @map("target_url")
+  licenseType  String   @map("license_type") // e.g. "MIT", "CC-BY-4.0", "Public Domain"
+  refreshCron  String   @default("0 0 * * *") @map("refresh_cron") // Daily
+  lastSyncedAt DateTime? @map("last_synced_at")
+
+  snapshots DataSnapshot[]
+  records   IngestedRecord[]
+
+  @@map("data_sources")
+}
+
+// 5. Versioned Dataset Snapshots (For Rollbacks & Auditing)
+model DataSnapshot {
+  id           String     @id @default(uuid()) @db.Uuid
+  sourceId     String     @map("source_id") @db.Uuid
+  version      Int
+  recordCount  Int        @default(0) @map("record_count")
+  status       SyncStatus @default(IN_PROGRESS)
+  errorMessage String?    @map("error_message")
+  createdAt    DateTime   @default(now()) @map("created_at")
+
+  source DataSource @relation(fields: [sourceId], references: [id], onDelete: Cascade)
+
+  @@map("data_snapshots")
+}
+
+// 6. Ingested Data Store (Decoupled Local Data Layer)
+model IngestedRecord {
+  id         String   @id @default(uuid()) @db.Uuid
+  sourceId   String   @map("source_id") @db.Uuid
+  entityKey  String   @map("entity_key")
+  payload    Json
+  version    Int      @default(1)
+  createdAt  DateTime @default(now()) @map("created_at")
+  updatedAt  DateTime @updatedAt @map("updated_at")
+
+  source DataSource @relation(fields: [sourceId], references: [id], onDelete: Cascade)
+
+  @@unique([sourceId, entityKey])
+  @@map("ingested_records")
+}

@@ -1,0 +1,52 @@
+# Dependencies & Package Managers
+node_modules/
+platform/node_modules/
+raw-engine/node_modules/
+.pnpm-store/
+pnpm-lock.yaml
+yarn.lock
+package-lock.json
+
+# Next.js Build Outputs & Caches
+.next/
+platform/.next/
+out/
+build/
+dist/
+.swc/
+
+# Local Environment & Secrets
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+*.env
+
+# IDE & System Files
+.vscode/
+.history/
+.snapshots/
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+
+# Docker & Media Engine Output
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+logs/
+*.sys
+
+# Storage & Temporary Uploads
+raw-engine/storage/data/*
+!raw-engine/storage/data/.gitkeep
+tmp/
+temp/

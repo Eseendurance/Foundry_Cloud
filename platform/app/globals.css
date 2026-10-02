@@ -1,0 +1,65 @@
+@import "tailwindcss";
+
+:root {
+  --paper: #faf7f1;
+  --paper-dim: #f2ece1;
+  --ink: #202b24;
+  --ink-soft: #4a544c;
+  --moss: #33513c;
+  --moss-deep: #24392a;
+  --blue-trust: #2e5b8a;
+  --amber: #d79a3b;
+  --rust: #b25b4a;
+  --line: #dfd6c4;
+}
+
+@theme inline {
+  --color-paper: var(--paper);
+  --color-paper-dim: var(--paper-dim);
+  --color-ink: var(--ink);
+  --color-ink-soft: var(--ink-soft);
+  --color-moss: var(--moss);
+  --color-moss-deep: var(--moss-deep);
+  --color-blue-trust: var(--blue-trust);
+  --color-amber: var(--amber);
+  --color-rust: var(--rust);
+  --color-line: var(--line);
+  --font-display: "Fraunces", serif;
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, monospace;
+}
+
+* {
+  border-color: var(--line);
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--font-sans);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+  * {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+::selection {
+  background: var(--moss);
+  color: var(--paper);
+}
+
+.grain {
+  background-image: radial-gradient(var(--ink) 0.5px, transparent 0.5px);
+  background-size: 18px 18px;
+}

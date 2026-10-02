@@ -1,0 +1,36 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: foundry-postgres
+    restart: always
+    environment:
+      POSTGRES_USER: foundry_admin
+      POSTGRES_PASSWORD: super_secure_db_password_2026
+      POSTGRES_DB: foundry_cloud_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  foundry-app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: foundry-cloud-app
+    restart: always
+    depends_on:
+      - postgres
+    environment:
+      DATABASE_URL: "postgresql://foundry_admin:super_secure_db_password_2026@postgres:5432/foundry_cloud_db?schema=public"
+      NODE_ENV: "production"
+      PORT: 3000
+    ports:
+      - "3000:3000"   # Next.js App & Dashboard
+      - "25:25"       # Direct Raw SMTP Direct Receiver/Dispatcher
+      - "80:80"       # Web Hosting Proxy Port
+      - "443:443"     # SSL Web Proxy Port
+
+volumes:
+  postgres_data:

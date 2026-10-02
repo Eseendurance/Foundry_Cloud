@@ -1,0 +1,35 @@
+endpoint POST "/v1/ingest" {
+  requiresKey: true
+}
+
+pipeline "sample.pipe" {
+  validate {
+    require id
+    require name
+    type role string
+  }
+
+  transform {
+    status = "processed"
+    processed_at = now()
+    event_id = uuid()
+    user_name = uppercase(name)
+    user_role = lowercase(role)
+    user_tag = concat("USR-", role, "-", name)
+    user_hash = hash(id)
+    region = default(region, "global-us-east")
+    system_origin = "raw_engine_gateway"
+  }
+
+  if role == "ADMIN" {
+    priority = "high"
+    access_level = "full_access"
+  }
+
+  else {
+    priority = "standard"
+    access_level = "restricted"
+  }
+
+  webhook "https://httpbin.org/post"
+}

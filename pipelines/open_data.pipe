@@ -1,0 +1,11 @@
+SOURCE OpenGovFinance {
+  URL "https://api.github.com/events"
+  CRON "0 0 * * *"
+  LICENSE "MIT"
+}
+
+EXPOSE_ENDPOINT "/api/v1/events" {
+  REQUIRES_KEY true
+  QUOTA 5000
+  STORE_INTO "financial_records"
+}
