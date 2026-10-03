@@ -1,4 +1,3 @@
-import { redirect } from 'next/navigation';
 import Nav from "@/components/Nav";
 import Footer from "@/components/Footer";
 import BuildLog from "@/components/BuildLog";
@@ -11,15 +10,11 @@ import {
   Video,
   Code2,
   Sparkles,
-  ShieldCheck,
+  Search,
   Eye,
   GitBranch,
-  Search,
+  ShieldCheck,
 } from "lucide-react";
-
-export default function Home() {
-  redirect('/dashboard');
-}
 
 const pillars = [
   {
