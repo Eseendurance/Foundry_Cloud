@@ -20,7 +20,7 @@ const pillars = [
   {
     icon: Sparkles,
     name: "AI app builder",
-    desc: "Describe what you want. Real AI (Anthropic, Gemini, or DeepSeek — whichever you've connected) streams back a working single-page app you can preview, edit, and keep.",
+    desc: "Describe what you want. Real AI (Anthropic, Gemini, or DeepSeek — whichever you have connected) streams back a working single-page app you can preview, edit, and keep.",
   },
   {
     icon: Code2,
@@ -56,7 +56,7 @@ const pillars = [
 
 const steps = [
   {
-    title: "Say what you're building",
+    title: "Say what you are building",
     desc: "In plain language — a waitlist page, a booking tool, an internal dashboard.",
   },
   {
@@ -84,19 +84,19 @@ export default function Home() {
           <div>
             <span className="inline-flex items-center gap-2 rounded-full border border-line bg-paper-dim px-3 py-1 text-xs text-ink-soft">
               <span className="h-1.5 w-1.5 rounded-full bg-moss" />
-              Built in the open — see what&apos;s live below
+              Built in the open — see what is live below
             </span>
 
             <h1 className="mt-6 font-display text-4xl leading-[1.08] tracking-tight text-ink sm:text-5xl lg:text-6xl">
               A developer platform that tells you
-              <span className="italic text-moss"> what&apos;s actually working.</span>
+              <span className="italic text-moss"> what is actually working.</span>
             </h1>
 
             <p className="mt-6 max-w-xl text-lg leading-relaxed text-ink-soft">
               Groundwork is building the tools to take an idea from a
               sentence to a shipped product — an app builder, a code editor,
-              a database, eventually a domain and an inbox. We&apos;re not
-              pretending it&apos;s all done. The log below shows exactly what
+              a database, eventually a domain and an inbox. We are not
+              pretending it is all done. The log below shows exactly what
               you can use today.
             </p>
 
@@ -105,7 +105,7 @@ export default function Home() {
                 href="/build"
                 className="rounded-full bg-moss px-6 py-3.5 text-sm font-medium text-paper transition-colors hover:bg-moss-deep"
               >
-                Try the app builder — it&apos;s live
+                Try the app builder — it is live
               </a>
               <a
                 href="#log"
@@ -126,7 +126,7 @@ export default function Home() {
       <section id="log" className="mx-auto max-w-6xl px-6 py-16">
         <div className="mb-8 max-w-2xl">
           <h2 className="font-display text-2xl text-ink sm:text-3xl">
-            What&apos;s live right now
+            What is live right now
           </h2>
           <p className="mt-3 text-ink-soft">
             No feature on this page ships until it does real work. Here is
@@ -170,10 +170,10 @@ export default function Home() {
       <section id="how" className="mx-auto max-w-6xl px-6 py-20">
         <div className="mb-10 max-w-2xl">
           <h2 className="font-display text-2xl text-ink sm:text-3xl">
-            How it&apos;s meant to work
+            How it is meant to work
           </h2>
           <p className="mt-3 text-ink-soft">
-            This is the path we&apos;re building toward. Steps already live
+            This is the path we are building toward. Steps already live
             are marked in the log above.
           </p>
         </div>
@@ -200,8 +200,8 @@ export default function Home() {
             <Eye className="text-amber" size={22} strokeWidth={1.75} />
             <h3 className="mt-4 font-medium text-paper">No staged demos</h3>
             <p className="mt-2 text-sm leading-relaxed text-paper/60">
-              If it&apos;s marked live, it responds to real input and does
-              real work — including this page&apos;s own signup form.
+              If it is marked live, it responds to real input and does
+              real work — including this page signup form.
             </p>
           </div>
           <div>
@@ -219,7 +219,7 @@ export default function Home() {
             <p className="mt-2 text-sm leading-relaxed text-paper/60">
               Browse the workspace shell without signing up. Create an
               account only when you want a project to actually persist —
-              that&apos;s a real Postgres row, not a cookie trick.
+              that is a real Postgres row, not a cookie trick.
             </p>
           </div>
         </div>
@@ -231,8 +231,8 @@ export default function Home() {
           Follow along, or get pulled in early
         </h2>
         <p className="mx-auto mt-3 max-w-xl text-ink-soft">
-          Tell us what you&apos;re hoping to build. When the piece you need
-          goes live, you&apos;ll be the first to hear — once, by email.
+          Tell us what you are hoping to build. When the piece you need
+          goes live, you will be the first to hear — once, by email.
         </p>
         <div className="mx-auto mt-8 max-w-lg">
           <WaitlistForm />
