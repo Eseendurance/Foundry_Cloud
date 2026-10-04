@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef } from "react";
 import dynamic from "next/dynamic";
 import Link from "next/link";
 import {
@@ -17,7 +17,6 @@ import {
   Separator,
 } from "react-resizable-panels";
 import AgentPanel from "@/components/AgentPanel";
-import GitHubConnect from "@/components/GitHubConnect";
 import FileTree from "@/components/FileTree";
 
 const Editor = dynamic(() => import("@monaco-editor/react"), { ssr: false });
@@ -195,21 +194,6 @@ function initialState(): { files: Record<string, string>; importedFlat: boolean 
   return { files: DEFAULT_FILES, importedFlat: false };
 }
 
-function initialGithubBanner(): string | null {
-  if (typeof window === "undefined") return null;
-  const params = new URLSearchParams(window.location.search);
-  const gh = params.get("github");
-  if (!gh) return null;
-  window.history.replaceState(null, "", window.location.pathname);
-  if (gh === "connected") return "Connected to GitHub.";
-  if (gh === "state_mismatch") return "GitHub connection failed — please try again.";
-  if (gh === "error") {
-    const detail = params.get("detail");
-    return `GitHub connection failed${detail ? `: ${detail}` : "."}`;
-  }
-  return null;
-}
-
 export default function Ide() {
   const [view, setView] = useState<"classic" | "pro">("classic");
   const [{ files, importedFlat, original }, setState] = useState(() => {
@@ -221,14 +205,7 @@ export default function Ide() {
   const [buildLog, setBuildLog] = useState<string[]>([
     "Ready. Edit a file and hit Run to see output here.",
   ]);
-  const [githubBanner, setGithubBanner] = useState<string | null>(initialGithubBanner);
   const editorRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    if (!githubBanner) return;
-    const t = setTimeout(() => setGithubBanner(null), 6000);
-    return () => clearTimeout(t);
-  }, [githubBanner]);
 
   function setFiles(updater: (f: Record<string, string>) => Record<string, string>) {
     setState((s) => ({ ...s, files: updater(s.files) }));
@@ -423,7 +400,6 @@ export default function Ide() {
         </div>
 
         <div className="flex items-center gap-2">
-          <GitHubConnect files={files} />
           <button
             onClick={reset}
             className="flex items-center gap-1.5 rounded-full border border-line px-3 py-1.5 text-xs text-ink-soft hover:border-ink hover:text-ink"
@@ -447,12 +423,6 @@ export default function Ide() {
           </button>
         </div>
       </header>
-
-      {githubBanner && (
-        <p className="border-b border-line bg-moss/10 px-6 py-2 text-xs text-ink">
-          {githubBanner}
-        </p>
-      )}
 
       {importedFlat && (
         <p className="border-b border-line bg-amber/10 px-6 py-2 text-xs text-ink-soft">

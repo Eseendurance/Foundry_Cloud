@@ -28,19 +28,21 @@ export default function Preview({ code, className = "" }: PreviewProps) {
     return raw.trim();
   }, [code]);
 
-  // 2. Wrap HTML inside a safe wrapper with Tailwind CDN & error boundary
+  // 2. Wrap HTML locally so previews never depend on a third-party CDN.
   const fullHtml = useMemo(() => {
-    // If the LLM supplied a full HTML document, inject script tags prior to </head>
+    const errorHandler = `<script>
+      window.onerror = function(msg) {
+        const error = document.createElement('pre');
+        error.textContent = 'Preview Error: ' + msg;
+        error.style.cssText = 'color:#0b0b0c;background:#f1f5f9;border:1px solid #2563eb;padding:12px;margin:10px;white-space:pre-wrap';
+        document.body.appendChild(error);
+      };
+    </script>`;
+
     if (cleanedCode.toLowerCase().includes("<html")) {
       return cleanedCode.replace(
         /<\/head>/i,
-        `<script src="https://cdn.tailwindcss.com"></script>
-         <script>
-           window.onerror = function(msg, url, line) {
-             document.body.innerHTML += '<div style="color:red; background:#fee2e2; padding:12px; margin:10px; border-radius:6px; font-family:sans-serif;"><strong>Preview Error:</strong> ' + msg + '</div>';
-           };
-         </script>
-         </head>`
+        `${errorHandler}</head>`
       );
     }
 
@@ -50,18 +52,17 @@ export default function Preview({ code, className = "" }: PreviewProps) {
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <script src="https://cdn.tailwindcss.com"></script>
   <style>
-    body { font-family: system-ui, -apple-system, sans-serif; }
+    :root { color-scheme: light; font-family: Inter, ui-sans-serif, system-ui, sans-serif; }
+    * { box-sizing: border-box; }
+    body { margin: 0; min-height: 100vh; color: #0b0b0c; background: #fff; font-family: inherit; }
+    a { color: #2563eb; }
+    button, input, textarea, select { font: inherit; }
   </style>
-  <script>
-    window.onerror = function(msg, url, line) {
-      document.body.innerHTML += '<div style="color:#dc2626; background:#fee2e2; border:1px solid #fca5a5; padding:12px; margin:16px; border-radius:8px; font-family:sans-serif; font-size:14px;"><strong>Runtime Error:</strong> ' + msg + '</div>';
-    };
-  </script>
 </head>
-<body class="bg-white text-slate-900 min-h-screen p-4">
-  ${cleanedCode || `<div class="flex items-center justify-center h-64 text-slate-400 font-sans text-sm">Waiting for app generation...</div>`}
+<body>
+  ${cleanedCode || `<div style="display:grid;place-items:center;min-height:16rem;color:#1e293b;font-size:.875rem">Waiting for app content…</div>`}
+  ${errorHandler}
 </body>
 </html>`;
   }, [cleanedCode]);

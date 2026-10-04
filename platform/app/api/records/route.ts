@@ -9,10 +9,7 @@ export async function GET(req: Request) {
     const records = await prisma.ingestedRecord.findMany({
       where: search
         ? {
-            OR: [
-              { sourceId: { contains: search, mode: "insensitive" } },
-              { entityKey: { contains: search, mode: "insensitive" } },
-            ],
+            entityKey: { contains: search, mode: "insensitive" },
           }
         : undefined,
       orderBy: { createdAt: "desc" },
@@ -20,7 +17,8 @@ export async function GET(req: Request) {
     });
 
     return NextResponse.json({ records });
-  } catch (err: any) {
-    return NextResponse.json({ error: err.message }, { status: 500 });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Could not list records.";
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }

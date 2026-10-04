@@ -59,7 +59,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json(
       {
         error:
-          "No AI provider is configured. Set one of ANTHROPIC_API_KEY, GEMINI_API_KEY, or DEEPSEEK_API_KEY in your Vercel project's environment variables — see the README.",
+          "The local AI engine is offline. Configure LOCAL_LLM_URL and LOCAL_LLM_MODEL.",
       },
       { status: 500 }
     );

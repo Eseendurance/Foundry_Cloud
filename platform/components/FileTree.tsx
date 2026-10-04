@@ -34,7 +34,7 @@ function buildTree(paths: string[]): TreeNode[] {
   }
 
   function toNodes(raw: Raw, prefix: string): TreeNode[] {
-    const folderNodes: TreeNode[] = [...raw.folders.entries()]
+    const folderNodes: TreeNode[] = Array.from(raw.folders.entries())
       .sort(([a], [b]) => a.localeCompare(b))
       .map(([name, child]) => ({
         type: "folder" as const,

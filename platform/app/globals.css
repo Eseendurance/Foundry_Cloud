@@ -1,16 +1,16 @@
 @import "tailwindcss";
 
 :root {
-  --paper: #faf7f1;
-  --paper-dim: #f2ece1;
-  --ink: #202b24;
-  --ink-soft: #4a544c;
-  --moss: #33513c;
-  --moss-deep: #24392a;
-  --blue-trust: #2e5b8a;
-  --amber: #d79a3b;
-  --rust: #b25b4a;
-  --line: #dfd6c4;
+  --paper: #ffffff;
+  --paper-dim: #f1f5f9;
+  --ink: #0b0b0c;
+  --ink-soft: #1e293b;
+  --moss: #2563eb;
+  --moss-deep: #1d4ed8;
+  --blue-trust: #3b82f6;
+  --amber: #3b82f6;
+  --rust: #1e293b;
+  --line: #cbd5e1;
 }
 
 @theme inline {
@@ -24,7 +24,7 @@
   --color-amber: var(--amber);
   --color-rust: var(--rust);
   --color-line: var(--line);
-  --font-display: "Fraunces", serif;
+  --font-display: "Inter", ui-sans-serif, system-ui, sans-serif;
   --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
   --font-mono: "JetBrains Mono", ui-monospace, monospace;
 }

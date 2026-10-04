@@ -11,34 +11,38 @@ export interface SandboxProject {
 
 export class RawSandboxEngine {
   /**
-   * Compiles virtual TypeScript/React components into executable browser bundles locally.
+   * Produces an offline HTML/CSS/JavaScript preview. React and TypeScript
+   * projects need a local build worker and are rejected rather than loaded
+   * from a third-party CDN.
    */
   static compileToBundle(files: Record<string, string>): string {
-    const entryFile = files['/App.tsx'] || files['/index.tsx'] || Object.values(files)[0] || '';
-    
-    // Self-contained, client-side HTML preview template
-    return `
-      <!DOCTYPE html>
-      <html>
-        <head>
-          <meta charset="utf-8" />
-          <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
-          <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
-          <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-          <script src="https://cdn.tailwindcss.com"></script>
-        </head>
-        <body class="bg-slate-950 text-white p-4">
-          <div id="root"></div>
-          <script type="text/babel">
-            ${entryFile}
-            
-            if (typeof App !== 'undefined') {
-              ReactDOM.createRoot(document.getElementById('root')).render(<App />);
-            }
-          </script>
-        </body>
-      </html>
-    `;
+    if (Object.keys(files).some((file) => /\.(tsx?|jsx)$/.test(file))) {
+      throw new Error("React and TypeScript previews require a configured local build worker.");
+    }
+
+    const html = files["index.html"];
+    if (!html) throw new Error("The preview needs an index.html entry file.");
+
+    const style = files["styles.css"]?.replace(/<\/style/gi, "<\\/style");
+    const script = files["script.js"]?.replace(/<\/script/gi, "<\\/script");
+    let document = html;
+    if (!/<html[\s>]/i.test(document)) {
+      document = `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head><body>${document}</body></html>`;
+    }
+
+    if (style) {
+      document = document.replace(
+        /<\/head>/i,
+        `<style>${style}</style></head>`
+      );
+    }
+    if (script) {
+      document = document.replace(
+        /<\/body>/i,
+        `<script>${script}</script></body>`
+      );
+    }
+    return document;
   }
 
   /**

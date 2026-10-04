@@ -6,12 +6,9 @@ const __dirname = path.dirname(__filename);
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  typescript: {
-    ignoreBuildErrors: true,
-  },
   turbopack: {},
   webpack: (config) => {
-    config.resolve.alias["@/raw-engine"] = path.resolve(__dirname, "./raw-engine");
+    config.resolve.alias["@/raw-engine"] = path.resolve(__dirname, "../raw-engine");
     return config;
   },
 };

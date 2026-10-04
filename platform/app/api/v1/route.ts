@@ -1,73 +1,74 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
+import { availableProviders, generateText } from "@/lib/llm";
+import { verifyApiKey } from "@/lib/api-keys";
+import { clientKey, rateLimited } from "@/lib/rate-limit";
 
-export async function POST(req: Request) {
-  try {
-    // 1. Authenticate Client API Key
-    const authHeader = req.headers.get("Authorization");
-    if (!authHeader || !authHeader.startsWith("Bearer fg_live_")) {
-      return NextResponse.json(
-        { error: "Unauthorized. Valid platform key required (Bearer fg_live_...)." },
-        { status: 401 }
-      );
-    }
+export const runtime = "nodejs";
 
-    const { action, payload } = await req.json();
-
-    // 2. Route based on requested platform feature
-    switch (action) {
-      case "generate_code": {
-        // Execute Code Generation Logic
-        const apiKey = process.env.SYSTEM_AI_KEY;
-        if (!apiKey) {
-          return NextResponse.json({
-            success: true,
-            action: "generate_code",
-            result: `[MOCK CODE] Exported component for prompt: "${payload?.prompt}"`,
-          });
-        }
-        // System upstream API execution...
-        return NextResponse.json({
-          success: true,
-          action: "generate_code",
-          result: `// Code generated for ${payload?.prompt}`,
-        });
-      }
-
-      case "create_schema": {
-        // Execute Database Schema Management Logic
-        const tableName = (payload?.name || "entity").toLowerCase().replace(/\s+/g, "_");
-        return NextResponse.json({
-          success: true,
-          action: "create_schema",
-          table: {
-            tableName,
-            columns: [
-              { name: "id", type: "INTEGER", nullable: false },
-              { name: "payload", type: "VARCHAR", nullable: true },
-              { name: "created_at", type: "TIMESTAMP", nullable: false },
-            ],
-          },
-        });
-      }
-
-      case "deploy_app": {
-        // Execute Keyless Deployment Engine Logic
-        const deploymentUrl = `https://${payload?.appName || "app"}-${Math.random().toString(36).substring(2, 7)}.vercel.app`;
-        return NextResponse.json({
-          success: true,
-          action: "deploy_app",
-          url: deploymentUrl,
-          status: "DEPLOYED",
-        });
-      }
-
-      default:
-        return NextResponse.json(
-          { error: "Invalid action type. Supported: generate_code, create_schema, deploy_app" },
-          { status: 400 }
-        );
-    }
-  } catch (error: any) {
-    return NextResponse.json({ error: error.message || "Execution failure." }, { status: 500 });
+export async function POST(request: NextRequest) {
+  const authorization = request.headers.get("authorization");
+  const token = authorization?.match(/^Bearer\s+(\S+)$/i)?.[1];
+  if (!token) {
+    return NextResponse.json({ error: "A valid Foundry API key is required." }, { status: 401 });
   }
+
+  let identity: Awaited<ReturnType<typeof verifyApiKey>>;
+  try {
+    identity = await verifyApiKey(token);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "API key verification failed.";
+    return NextResponse.json({ error: message }, { status: 503 });
+  }
+  if (!identity) {
+    return NextResponse.json({ error: "A valid Foundry API key is required." }, { status: 401 });
+  }
+  if (rateLimited(`api-v1:${identity.keyId}:${clientKey(request)}`, 30, 60_000)) {
+    return NextResponse.json({ error: "API request limit exceeded. Try again shortly." }, { status: 429 });
+  }
+
+  let body: { action?: unknown; payload?: unknown };
+  try {
+    body = await request.json();
+  } catch {
+    return NextResponse.json({ error: "Send this as JSON." }, { status: 400 });
+  }
+
+  if (body.action === "generate_code") {
+    const payload = body.payload;
+    const prompt =
+      payload && typeof payload === "object" && !Array.isArray(payload)
+        ? (payload as Record<string, unknown>).prompt
+        : undefined;
+    if (typeof prompt !== "string" || !prompt.trim()) {
+      return NextResponse.json({ error: "payload.prompt is required." }, { status: 400 });
+    }
+    if (!availableProviders().includes("local")) {
+      return NextResponse.json({ error: "The local AI engine is offline." }, { status: 503 });
+    }
+    try {
+      const result = await generateText("You are a software engineer. Return production-quality code.", prompt.slice(0, 12_000));
+      return NextResponse.json({ success: true, action: "generate_code", result: result.text });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Local code generation failed.";
+      return NextResponse.json({ error: message }, { status: 502 });
+    }
+  }
+
+  if (body.action === "create_schema") {
+    return NextResponse.json(
+      { error: "Schema provisioning is not enabled until workspace isolation and migrations are configured." },
+      { status: 501 }
+    );
+  }
+  if (body.action === "deploy_app") {
+    return NextResponse.json(
+      { error: "Deployment-provider integration is disabled. Export the project and deploy it on your own host." },
+      { status: 501 }
+    );
+  }
+
+  return NextResponse.json(
+    { error: "Unsupported action. Supported actions: generate_code, create_schema, deploy_app." },
+    { status: 400 }
+  );
 }

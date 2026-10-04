@@ -67,29 +67,28 @@ export default function VoiceModule() {
             <ArrowLeft size={16} />
             Workspace
           </Link>
-          <span className="inline-flex items-center gap-2 rounded-full border border-moss/30 bg-moss/5 px-3 py-1 text-xs text-moss">
-            <span className="h-1.5 w-1.5 rounded-full bg-moss" />
-            Voice — live
+          <span className="inline-flex items-center gap-2 rounded-full border border-slate-300 px-3 py-1 text-xs text-slate-700">
+            <span className="h-1.5 w-1.5 rounded-full bg-blue-600" />
+            Local speech engine
           </span>
         </div>
       </header>
 
       <main className="mx-auto max-w-2xl px-6 py-12">
-        <h1 className="font-display text-2xl text-ink sm:text-3xl">AI voice</h1>
+        <h1 className="font-display text-2xl text-ink sm:text-3xl">Local voice studio</h1>
         <p className="mt-2 text-sm text-ink-soft">
-          Real text-to-speech, generated on request through ElevenLabs — not
-          a sample clip.
+          Speech is generated on this host by espeak-ng. No external voice service is called.
         </p>
 
         <div className="mt-4 flex items-start gap-2 rounded-2xl border border-line bg-paper-dim/40 p-4 text-sm text-ink-soft">
-          <Video size={16} className="mt-0.5 shrink-0 text-amber" />
+          <Video size={16} className="mt-0.5 shrink-0 text-blue-600" />
           The talking video avatar (a face lip-synced to this audio) is the
-          next increment — it needs a GPU rendering service we haven&apos;t
-          connected. This page ships the real half: the voice itself.
+          separate media pipeline and is not available until its local rendering
+          worker is configured.
         </div>
 
         {voicesError && (
-          <p className="mt-6 flex items-start gap-2 text-sm text-rust">
+          <p className="mt-6 flex items-start gap-2 text-sm text-slate-800">
             <AlertCircle size={16} className="mt-0.5 shrink-0" />
             {voicesError}
           </p>
@@ -101,7 +100,7 @@ export default function VoiceModule() {
               value={voiceId}
               onChange={(e) => setVoiceId(e.target.value)}
               disabled={voices.length === 0}
-              className="w-full rounded-full border border-line bg-paper px-5 py-3 text-sm focus:border-moss focus:outline-none focus:ring-2 focus:ring-moss/20"
+              className="w-full rounded border border-line bg-paper px-5 py-3 text-sm focus:border-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-600/20"
             >
               {voices.length === 0 && <option>Loading voices…</option>}
               {voices.map((v) => (
@@ -114,12 +113,12 @@ export default function VoiceModule() {
               rows={3}
               value={text}
               onChange={(e) => setText(e.target.value)}
-              className="w-full rounded-2xl border border-line bg-paper px-5 py-3 text-sm focus:border-moss focus:outline-none focus:ring-2 focus:ring-moss/20"
+              className="w-full rounded border border-line bg-paper px-5 py-3 text-sm focus:border-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-600/20"
             />
             <button
               type="submit"
               disabled={loading || !voiceId}
-              className="flex items-center justify-center gap-2 rounded-full bg-moss px-6 py-3 text-sm font-medium text-paper hover:bg-moss-deep disabled:opacity-60"
+              className="flex items-center justify-center gap-2 rounded bg-blue-700 px-6 py-3 text-sm font-medium text-white hover:bg-blue-800 disabled:opacity-60"
             >
               <Volume2 size={15} />
               {loading ? "Generating…" : "Generate speech"}
@@ -128,7 +127,7 @@ export default function VoiceModule() {
         )}
 
         {error && (
-          <p className="mt-4 flex items-start gap-2 text-sm text-rust">
+          <p className="mt-4 flex items-start gap-2 text-sm text-slate-800">
             <AlertCircle size={16} className="mt-0.5 shrink-0" />
             {error}
           </p>

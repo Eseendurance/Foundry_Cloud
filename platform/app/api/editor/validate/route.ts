@@ -1,65 +1,66 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
+import { parsePipeDSL } from "@/raw-engine/engine/parser";
+import { executeAST } from "@/raw-engine/runtime/evaluator";
+import { clientKey, rateLimited } from "@/lib/rate-limit";
 
-export async function POST(req: Request) {
+export const runtime = "nodejs";
+
+export async function POST(request: NextRequest) {
+  if (rateLimited(`editor-validate:${clientKey(request)}`, 30, 60_000)) {
+    return NextResponse.json({ error: "Too many validation requests." }, { status: 429 });
+  }
+
+  let body: { code?: unknown; payload?: unknown };
   try {
-    const { code, payload } = await req.json();
+    body = await request.json();
+  } catch {
+    return NextResponse.json({ error: "Send this as JSON." }, { status: 400 });
+  }
 
-    if (!code) {
-      return NextResponse.json({ error: "Pipeline DSL code is required" }, { status: 400 });
-    }
+  if (typeof body.code !== "string" || !body.code.trim()) {
+    return NextResponse.json({ valid: false, error: "Pipeline DSL code is required." }, { status: 400 });
+  }
+  if (body.code.length > 100_000) {
+    return NextResponse.json({ valid: false, error: "Pipeline DSL must be under 100 KB." }, { status: 413 });
+  }
 
-    // Basic syntax checking and AST validation logic
-    const pipelineNameMatch = code.match(/pipeline\s+"([^"]+)"/);
-    const sourceMatch = code.match(/source\s+"([^"]+)"/);
-    const transformMatch = code.match(/transform\s+"([^"]+)"/);
-    const filterMatch = code.match(/filter\s*=\s*"([^"]+)"/);
-
-    if (!pipelineNameMatch) {
+  try {
+    const ast = parsePipeDSL(body.code);
+    if (!ast.pipelines.length) {
       return NextResponse.json({
         valid: false,
-        error: "Syntax Error: Missing pipeline definition (e.g., pipeline \"MyPipeline\")",
+        error: 'No valid pipeline declaration was parsed. Add a declaration such as pipeline "MyPipeline".',
       });
     }
 
-    const ast = {
-      type: "PipelineDeclaration",
-      name: pipelineNameMatch[1],
-      source: sourceMatch ? sourceMatch[1] : "default_source",
-      transform: transformMatch ? transformMatch[1] : null,
-      filterCondition: filterMatch ? filterMatch[1] : null,
-    };
-
-    // Evaluate simulated test execution if a JSON payload was provided
-    let executionResult = null;
-    if (payload) {
-      let passedFilter = true;
-      if (filterMatch) {
-        try {
-          // Safe evaluation mock for DSL filter condition
-          const filterExpr = filterMatch[1].replace(/payload\./g, "");
-          const keys = Object.keys(payload);
-          const values = Object.values(payload);
-          const evalFn = new Function(...keys, `return ${filterExpr};`);
-          passedFilter = Boolean(evalFn(...values));
-        } catch (e) {
-          passedFilter = true; // Fallback if expression isn't standard JS
-        }
-      }
-
-      executionResult = {
-        status: passedFilter ? "Ingested & Processed" : "Filtered Out (Dropped)",
-        passedFilter,
-        outputPayload: passedFilter ? payload : null,
-        timestamp: new Date().toISOString(),
-      };
+    if (body.payload === undefined) {
+      return NextResponse.json({ valid: true, ast, executionResult: null });
     }
+    if (!body.payload || typeof body.payload !== "object" || Array.isArray(body.payload)) {
+      return NextResponse.json({ valid: false, error: "Test payload must be a JSON object." }, { status: 400 });
+    }
+
+    const testAst = {
+      ...ast,
+      pipelines: ast.pipelines.map((pipeline) => ({ ...pipeline, webhooks: [] })),
+    };
+    const result = await executeAST(testAst, body.payload as Record<string, unknown>);
+    const passed = result.ctx.validationErrors.length === 0 && result.ctx.errors.length === 0;
 
     return NextResponse.json({
       valid: true,
       ast,
-      executionResult,
+      executionResult: {
+        status: passed ? "Passed" : "Failed",
+        passed,
+        outputPayload: result.data,
+        validationErrors: result.ctx.validationErrors,
+        errors: result.ctx.errors.map((error) => error.message),
+        logs: result.ctx.logs,
+      },
     });
-  } catch (err: any) {
-    return NextResponse.json({ valid: false, error: err.message }, { status: 500 });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Pipeline parsing or execution failed.";
+    return NextResponse.json({ valid: false, error: message }, { status: 400 });
   }
 }

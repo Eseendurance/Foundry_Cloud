@@ -1,66 +1,50 @@
-import { NextResponse } from "next/server";
-import { GoogleGenerativeAI } from "@google/generative-ai";
+import { NextRequest, NextResponse } from "next/server";
+import { availableProviders, generateText } from "@/lib/llm";
+import { clientKey, rateLimited } from "@/lib/rate-limit";
 
-const apiKey = process.env.GEMINI_API_KEY || process.env.NEXT_PUBLIC_GEMINI_API_KEY || "";
-const genAI = new GoogleGenerativeAI(apiKey);
+export const runtime = "nodejs";
 
-export async function POST(req: Request) {
+const SYSTEM_INSTRUCTION = `You are the Foundry Platform pipeline DSL generator.
+Generate a valid .pipe configuration for the supplied request.
+Return only a JSON object with string fields "dsl" and "explanation".
+Do not use markdown or code fences.`;
+
+export async function POST(request: NextRequest) {
+  if (rateLimited(`copilot:${clientKey(request)}`, 10, 5 * 60_000)) {
+    return NextResponse.json({ error: "Too many requests. Try again shortly." }, { status: 429 });
+  }
+
+  let body: { prompt?: unknown };
   try {
-    const { prompt } = await req.json();
-
-    if (!prompt) {
-      return NextResponse.json({ error: "Prompt is required" }, { status: 400 });
-    }
-
-    if (!apiKey) {
-      return NextResponse.json(
-        { error: "GEMINI_API_KEY environment variable is not configured." },
-        { status: 500 }
-      );
-    }
-
-    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
-
-    const systemInstruction = `You are the Foundry Platform DSL Engine Copilot.
-Your job is to generate valid Foundry .pipe DSL configurations based on user prompts.
-
-A valid .pipe DSL structure looks like this:
-pipeline "EcommerceOrderPipeline" {
-  version = "1.0"
-  source "webhook_orders" {
-    type = "http_endpoint"
-    path = "/v1/ingest/orders"
+    body = await request.json();
+  } catch {
+    return NextResponse.json({ error: "Send this as JSON." }, { status: 400 });
   }
-  transform "FilterAndCalculate" {
-    filter = "payload.amount >= 50"
-    map = {
-      order_id = "payload.id"
-      tax = "payload.amount * 0.075"
-      total = "payload.amount * 1.075"
+
+  if (typeof body.prompt !== "string" || !body.prompt.trim()) {
+    return NextResponse.json({ error: "Prompt is required." }, { status: 400 });
+  }
+
+  if (!availableProviders().includes("local")) {
+    return NextResponse.json(
+      { error: "The local AI engine is offline. Configure LOCAL_LLM_URL and LOCAL_LLM_MODEL." },
+      { status: 503 }
+    );
+  }
+
+  try {
+    const { text } = await generateText(
+      SYSTEM_INSTRUCTION,
+      `Generate a pipeline for: ${body.prompt.trim().slice(0, 4_000)}`,
+      4_000
+    );
+    const parsed = JSON.parse(text) as { dsl?: unknown; explanation?: unknown };
+    if (typeof parsed.dsl !== "string" || typeof parsed.explanation !== "string") {
+      throw new Error("Local model response must contain string dsl and explanation fields.");
     }
-  }
-  destination "database" {
-    target = "neon_orders_table"
-  }
-}
-
-Return ONLY valid JSON with two fields:
-1. "dsl": The raw string content of the .pipe configuration.
-2. "explanation": A brief, 2-3 sentence overview of what the pipeline does.
-
-Return pure JSON without markdown formatting or code blocks.`;
-
-    const result = await model.generateContent([
-      { text: systemInstruction },
-      { text: `Generate a pipeline for: ${prompt}` },
-    ]);
-
-    const rawResponse = result.response.text();
-    const cleanJson = rawResponse.replace(/```json|```/g, "").trim();
-    const parsed = JSON.parse(cleanJson);
-
-    return NextResponse.json(parsed);
-  } catch (err: any) {
-    return NextResponse.json({ error: err.message }, { status: 500 });
+    return NextResponse.json({ dsl: parsed.dsl, explanation: parsed.explanation });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Pipeline generation failed.";
+    return NextResponse.json({ error: message }, { status: 502 });
   }
 }

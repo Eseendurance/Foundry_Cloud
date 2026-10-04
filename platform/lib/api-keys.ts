@@ -1,7 +1,7 @@
 import { randomBytes, createHash, randomUUID } from "crypto";
 import { query } from "@/lib/db";
 
-const PREFIX = "fc_live_";
+const PREFIX = "fg_live_";
 
 function hashKey(key: string): string {
   return createHash("sha256").update(key).digest("hex");

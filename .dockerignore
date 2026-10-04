@@ -1,0 +1,11 @@
+.git
+.github
+**/node_modules
+**/.next
+**/tsconfig.tsbuildinfo
+**/.env*
+**/coverage
+**/dist
+**/build
+fonts-src/*
+!fonts-src/.gitkeep

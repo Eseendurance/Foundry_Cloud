@@ -1,36 +1,94 @@
-version: '3.8'
-
 services:
-  postgres:
-    image: postgres:16-alpine
-    container_name: foundry-postgres
-    restart: always
-    environment:
-      POSTGRES_USER: foundry_admin
-      POSTGRES_PASSWORD: super_secure_db_password_2026
-      POSTGRES_DB: foundry_cloud_db
-    ports:
-      - "5432:5432"
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-
-  foundry-app:
+  web:
+    image: foundry-cloud-web:local
     build:
       context: .
       dockerfile: Dockerfile
-    container_name: foundry-cloud-app
-    restart: always
-    depends_on:
-      - postgres
+    restart: unless-stopped
     environment:
-      DATABASE_URL: "postgresql://foundry_admin:super_secure_db_password_2026@postgres:5432/foundry_cloud_db?schema=public"
-      NODE_ENV: "production"
-      PORT: 3000
+      NODE_ENV: production
+      PORT: "3000"
+      DATABASE_URL: "${DATABASE_URL:?Set DATABASE_URL to the Neon PostgreSQL connection string}"
+      JWT_SECRET: "${JWT_SECRET:?Set JWT_SECRET to a generated secret}"
+      SITE_URL: "https://${SITE_DOMAIN:?Set SITE_DOMAIN to the public host name}"
+      FOUNDRY_STORAGE_DIR: /var/lib/foundry/storage
+      SMTP_HOST: "${SMTP_HOST:?Set SMTP_HOST to the self-hosted mail server}"
+      SMTP_PORT: "${SMTP_PORT:-25}"
+      SMTP_USER: "${SMTP_USER:-}"
+      SMTP_PASS: "${SMTP_PASS:-}"
+      EMAIL_FROM: "${EMAIL_FROM:?Set EMAIL_FROM to a sender on your mail domain}"
+      LOCAL_LLM_URL: "${LOCAL_LLM_URL:-http://ollama:11434/api/chat}"
+      LOCAL_LLM_MODEL: "${LOCAL_LLM_MODEL:-}"
+    expose:
+      - "3000"
+    volumes:
+      - foundry_storage:/var/lib/foundry/storage
+    healthcheck:
+      test:
+        - CMD
+        - node
+        - -e
+        - "fetch('http://127.0.0.1:3000/api/health').then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))"
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 90s
+    logging:
+      driver: json-file
+      options:
+        max-size: 10m
+        max-file: "5"
+
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    depends_on:
+      web:
+        condition: service_healthy
+    environment:
+      SITE_DOMAIN: "${SITE_DOMAIN:?Set SITE_DOMAIN to the public host name}"
     ports:
-      - "3000:3000"   # Next.js App & Dashboard
-      - "25:25"       # Direct Raw SMTP Direct Receiver/Dispatcher
-      - "80:80"       # Web Hosting Proxy Port
-      - "443:443"     # SSL Web Proxy Port
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://127.0.0.1:2019/config/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
+    logging:
+      driver: json-file
+      options:
+        max-size: 10m
+        max-file: "5"
+
+  ollama:
+    image: ollama/ollama:latest
+    profiles: ["local-ai"]
+    restart: unless-stopped
+    volumes:
+      - ollama_data:/root/.ollama
+    expose:
+      - "11434"
+    healthcheck:
+      test: ["CMD", "ollama", "list"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+    logging:
+      driver: json-file
+      options:
+        max-size: 10m
+        max-file: "5"
 
 volumes:
-  postgres_data:
+  foundry_storage:
+  caddy_data:
+  caddy_config:
+  ollama_data:

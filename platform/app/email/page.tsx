@@ -2,37 +2,19 @@
 
 import { useState } from "react";
 
-interface VerifiedDomain {
-  domain: string;
-  status: "verified" | "pending" | "failed";
-  spf: boolean;
-  dkim: boolean;
-  dmarc: boolean;
-}
-
-const INITIAL_DOMAINS: VerifiedDomain[] = [
-  { domain: "briefgroup.net", status: "verified", spf: true, dkim: true, dmarc: true },
-  { domain: "mail.omnicore.ai", status: "pending", spf: true, dkim: false, dmarc: false },
-];
+type DispatchResult = Record<string, unknown> & {
+  renderedHtml?: string;
+};
 
 export default function EmailStudioPage() {
   const [activeTab, setActiveTab] = useState<"send" | "domains" | "templates">("send");
 
   // Send Tab State
-  const [fromAddress, setFromAddress] = useState("notifications@briefgroup.net");
-  const [toAddress, setToAddress] = useState("client@example.com");
-  const [subject, setSubject] = useState("Your Order {{order_id}} is Confirmed!");
-  const [htmlTemplate, setHtmlTemplate] = useState(
-    `<div style="font-family: sans-serif; padding: 20px; border: 1px solid #e2e8f0; border-radius: 8px;">
-  <h2 style="color: #059669;">Hello {{user_name}},</h2>
-  <p>Thank you for your business. Your order <strong>{{order_id}}</strong> has been processed successfully.</p>
-  <p>Total Paid: <strong>\${{amount}}</strong></p>
-</div>`
-  );
-  const [variablesJson, setVariablesJson] = useState(
-    JSON.stringify({ user_name: "Ese", order_id: "ORD-9942", amount: "120.50" }, null, 2)
-  );
-  const [dispatchResult, setDispatchResult] = useState<any>(null);
+  const [toAddress, setToAddress] = useState("");
+  const [subject, setSubject] = useState("");
+  const [htmlTemplate, setHtmlTemplate] = useState("");
+  const [variablesJson, setVariablesJson] = useState("{}");
+  const [dispatchResult, setDispatchResult] = useState<DispatchResult | null>(null);
   const [sending, setSending] = useState(false);
 
   async function handleSendEmail() {
@@ -42,7 +24,7 @@ export default function EmailStudioPage() {
     let parsedVars = {};
     try {
       if (variablesJson.trim()) parsedVars = JSON.parse(variablesJson);
-    } catch (e) {
+    } catch {
       alert("Invalid JSON format in template variables.");
       setSending(false);
       return;
@@ -53,17 +35,19 @@ export default function EmailStudioPage() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          from: fromAddress,
           to: toAddress,
           subject,
           html: htmlTemplate,
           variables: parsedVars,
         }),
       });
-      const data = await res.json();
+      const data: DispatchResult = await res.json();
       setDispatchResult(data);
     } catch (err) {
       console.error("Email dispatch failed", err);
+      setDispatchResult({
+        error: err instanceof Error ? err.message : "Email dispatch failed.",
+      });
     } finally {
       setSending(false);
     }
@@ -76,7 +60,7 @@ export default function EmailStudioPage() {
         <div>
           <h1 className="text-3xl font-bold text-slate-900 dark:text-white">Email Infrastructure Studio</h1>
           <p className="text-slate-600 dark:text-slate-400 mt-1">
-            Resend & SendPulse-like delivery engine with transactional APIs, domain DKIM verification, and HTML templates.
+            Direct SMTP delivery through the configured mail server, with real DNS checks and editable HTML.
           </p>
         </div>
 
@@ -122,25 +106,17 @@ export default function EmailStudioPage() {
               Dispatch Payload Configuration
             </h2>
 
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="text-xs font-semibold text-slate-600 dark:text-slate-400 block mb-1">From Sender</label>
-                <input
-                  type="text"
-                  value={fromAddress}
-                  onChange={(e) => setFromAddress(e.target.value)}
-                  className="w-full p-2.5 border rounded-lg border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-xs font-mono text-slate-900 dark:text-white focus:outline-none"
-                />
-              </div>
-              <div>
-                <label className="text-xs font-semibold text-slate-600 dark:text-slate-400 block mb-1">To Recipient</label>
-                <input
-                  type="text"
-                  value={toAddress}
-                  onChange={(e) => setToAddress(e.target.value)}
-                  className="w-full p-2.5 border rounded-lg border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-xs font-mono text-slate-900 dark:text-white focus:outline-none"
-                />
-              </div>
+            <p className="text-xs text-slate-600 dark:text-slate-400">
+              Sender address is controlled by the server&apos;s EMAIL_FROM setting.
+            </p>
+            <div>
+              <label className="text-xs font-semibold text-slate-600 dark:text-slate-400 block mb-1">To Recipient</label>
+              <input
+                type="email"
+                value={toAddress}
+                onChange={(e) => setToAddress(e.target.value)}
+                className="w-full p-2.5 border rounded-lg border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-xs font-mono text-slate-900 dark:text-white focus:outline-none"
+              />
             </div>
 
             <div>
@@ -191,7 +167,8 @@ export default function EmailStudioPage() {
               <div
                 className="p-4 bg-slate-50 dark:bg-slate-950 rounded-lg border border-slate-200 dark:border-slate-800 text-slate-800 dark:text-slate-200 text-xs"
                 dangerouslySetInnerHTML={{
-                  __html: dispatchResult?.renderedHtml || htmlTemplate.replace(/\{\{\s*(\w+)\s*\}\}/g, "[$1]"),
+                  __html: (typeof dispatchResult?.renderedHtml === "string" && dispatchResult.renderedHtml)
+                    || htmlTemplate.replace(/\{\{\s*(\w+)\s*\}\}/g, "[$1]"),
                 }}
               />
             </div>
@@ -219,12 +196,9 @@ export default function EmailStudioPage() {
             <div>
               <h2 className="text-lg font-bold text-slate-900 dark:text-white">Sending Domains & DNS Health</h2>
               <p className="text-xs text-slate-600 dark:text-slate-400 mt-1">
-                Configure SPF, DKIM, and DMARC records to maximize delivery to inbox over spam filters.
+                These checks query public DNS directly. They do not change records at your DNS provider.
               </p>
             </div>
-            <button className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs rounded-lg transition">
-              + Add Sending Domain
-            </button>
           </div>
 
           <div className="overflow-x-auto">
@@ -239,25 +213,11 @@ export default function EmailStudioPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-200 dark:divide-slate-800 text-slate-800 dark:text-slate-200">
-                {INITIAL_DOMAINS.map((d) => (
-                  <tr key={d.domain}>
-                    <td className="p-3 font-semibold text-emerald-600 dark:text-emerald-400">{d.domain}</td>
-                    <td className="p-3">
-                      <span
-                        className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase ${
-                          d.status === "verified"
-                            ? "bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-400"
-                            : "bg-amber-100 dark:bg-amber-950 text-amber-700 dark:text-amber-400"
-                        }`}
-                      >
-                        {d.status}
-                      </span>
-                    </td>
-                    <td className="p-3">{d.spf ? "✓ Valid" : "✗ Missing"}</td>
-                    <td className="p-3">{d.dkim ? "✓ Verified" : "⏳ Pending DNS"}</td>
-                    <td className="p-3">{d.dmarc ? "✓ Configured" : "⏳ Pending DNS"}</td>
-                  </tr>
-                ))}
+                <tr>
+                  <td className="p-3 text-slate-600" colSpan={5}>
+                    No sending-domain checks are displayed until a domain is entered and checked.
+                  </td>
+                </tr>
               </tbody>
             </table>
           </div>

@@ -5,9 +5,8 @@ import { query } from "@/lib/db";
 export function smtpConfigured(): boolean {
   return Boolean(
     process.env.SMTP_HOST &&
-      process.env.SMTP_USER &&
-      process.env.SMTP_PASS &&
-      process.env.EMAIL_FROM
+      process.env.EMAIL_FROM &&
+      Boolean(process.env.SMTP_USER) === Boolean(process.env.SMTP_PASS)
   );
 }
 
@@ -19,10 +18,13 @@ function getTransporter(): Transporter {
       host: process.env.SMTP_HOST,
       port: Number(process.env.SMTP_PORT || 587),
       secure: Number(process.env.SMTP_PORT) === 465,
-      auth: {
-        user: process.env.SMTP_USER,
-        pass: process.env.SMTP_PASS,
-      },
+      auth:
+        process.env.SMTP_USER && process.env.SMTP_PASS
+          ? { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS }
+          : undefined,
+      connectionTimeout: 10_000,
+      greetingTimeout: 10_000,
+      socketTimeout: 30_000,
     });
   }
   return transporter;
@@ -36,8 +38,8 @@ function escapeHtml(s: string): string {
     .replace(/"/g, "&quot;");
 }
 
-function siteUrl(): string {
-  return process.env.SITE_URL || "https://example.com";
+function siteUrl(): string | null {
+  return process.env.SITE_URL?.replace(/\/+$/, "") || null;
 }
 
 /**
@@ -50,16 +52,19 @@ function siteUrl(): string {
  * someone crafting their own URL to our domain.
  */
 function buildTrackedHtml(id: string, text: string, linkLabel?: string): string {
+  const baseUrl = siteUrl();
   const paragraphs = text
     .split(/\n{2,}/)
     .map((p) => `<p style="margin:0 0 16px;">${escapeHtml(p).replace(/\n/g, "<br/>")}</p>`)
     .join("");
 
-  const button = linkLabel
-    ? `<p style="margin:24px 0;"><a href="${siteUrl()}/api/email/track/click/${id}" style="display:inline-block;padding:10px 20px;background:#33513c;color:#faf7f1;text-decoration:none;border-radius:999px;font-family:sans-serif;font-size:14px;">${escapeHtml(linkLabel)}</a></p>`
+  const button = linkLabel && baseUrl
+    ? `<p style="margin:24px 0;"><a href="${baseUrl}/api/email/track/click/${id}" style="display:inline-block;padding:10px 20px;background:#2563eb;color:#ffffff;text-decoration:none;font-family:sans-serif;font-size:14px;">${escapeHtml(linkLabel)}</a></p>`
     : "";
 
-  const pixel = `<img src="${siteUrl()}/api/email/track/open/${id}" width="1" height="1" alt="" style="display:block;" />`;
+  const pixel = baseUrl
+    ? `<img src="${baseUrl}/api/email/track/open/${id}" width="1" height="1" alt="" style="display:block;" />`
+    : "";
 
   return `<div style="font-family:sans-serif;color:#202b24;max-width:480px;">${paragraphs}${button}${pixel}</div>`;
 }
@@ -69,17 +74,20 @@ export async function sendEmail(opts: {
   to: string;
   subject: string;
   text: string;
+  html?: string;
   link?: { url: string; label: string };
 }): Promise<{ messageId: string; trackingId: string }> {
+  if (!smtpConfigured()) {
+    throw new Error("The local SMTP server is not configured.");
+  }
   const from = process.env.EMAIL_FROM!;
   const trackingId = randomUUID();
-
-  await query(
-    "INSERT INTO sent_emails (id, user_id, to_email, subject, link_url) VALUES ($1, $2, $3, $4, $5)",
-    [trackingId, opts.userId, opts.to, opts.subject, opts.link?.url || null]
-  );
-
-  const html = buildTrackedHtml(trackingId, opts.text, opts.link?.label);
+  const trackingPixel = siteUrl()
+    ? `<img src="${siteUrl()}/api/email/track/open/${trackingId}" width="1" height="1" alt="" style="display:block" />`
+    : "";
+  const html = opts.html
+    ? `${opts.html}${trackingPixel}`
+    : buildTrackedHtml(trackingId, opts.text, opts.link?.label);
 
   const info = await getTransporter().sendMail({
     from,
@@ -88,6 +96,11 @@ export async function sendEmail(opts: {
     text: opts.text,
     html,
   });
+
+  await query(
+    "INSERT INTO sent_emails (id, user_id, to_email, subject, link_url) VALUES ($1, $2, $3, $4, $5)",
+    [trackingId, opts.userId, opts.to, opts.subject, opts.link?.url || null]
+  );
 
   return { messageId: info.messageId, trackingId };
 }

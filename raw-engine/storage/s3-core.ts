@@ -6,7 +6,9 @@ export class NativeStorageEngine {
   private storageDir: string;
 
   constructor() {
-    this.storageDir = path.join(process.cwd(), "raw-engine", "storage", "data");
+    this.storageDir = path.resolve(
+      process.env.FOUNDRY_STORAGE_DIR || path.join(process.cwd(), "raw-engine", "storage", "data")
+    );
     if (!fs.existsSync(this.storageDir)) {
       fs.mkdirSync(this.storageDir, { recursive: true });
     }

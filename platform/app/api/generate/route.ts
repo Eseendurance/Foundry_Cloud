@@ -1,62 +1,42 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
+import { availableProviders, generateText } from "@/lib/llm";
+import { clientKey, rateLimited } from "@/lib/rate-limit";
 
-export async function POST(req: Request) {
+export const runtime = "nodejs";
+
+export async function POST(request: NextRequest) {
+  if (rateLimited(`generate:${clientKey(request)}`, 10, 5 * 60_000)) {
+    return NextResponse.json({ error: "Too many generation requests. Try again shortly." }, { status: 429 });
+  }
+
+  let body: { prompt?: unknown; type?: unknown };
   try {
-    const { prompt, type } = await req.json();
+    body = await request.json();
+  } catch {
+    return NextResponse.json({ error: "Send this as JSON." }, { status: 400 });
+  }
 
-    if (!prompt) {
-      return NextResponse.json(
-        { error: "Prompt definition required." },
-        { status: 400 }
-      );
-    }
+  if (typeof body.prompt !== "string" || !body.prompt.trim()) {
+    return NextResponse.json({ error: "Prompt definition required." }, { status: 400 });
+  }
 
-    // Server-side system API key fallback
-    const apiKey = process.env.SYSTEM_AI_KEY;
-
-    if (!apiKey) {
-      // Offline / Local fallback logic when no system key is configured
-      return NextResponse.json({
-        success: true,
-        mode: "offline-mock",
-        output: `[MOCK OUTPUT] Standard schema/code generated for: "${prompt}"`,
-      });
-    }
-
-    // Call upstream AI service securely using system environment variable
-    const response = await fetch("https://api.openai.com/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${apiKey}`,
-      },
-      body: JSON.stringify({
-        model: "gpt-4o-mini",
-        messages: [
-          {
-            role: "system",
-            content:
-              type === "schema"
-                ? "You are a database architect. Return clean SQL DDL statements or JSON schema objects."
-                : "You are a software engineer. Return valid Next.js/TypeScript code snippets.",
-          },
-          { role: "user", content: prompt },
-        ],
-      }),
-    });
-
-    const data = await response.json();
-    const resultText = data.choices?.[0]?.message?.content || "No output generated.";
-
-    return NextResponse.json({
-      success: true,
-      mode: "live-proxy",
-      output: resultText,
-    });
-  } catch (error: any) {
+  if (!availableProviders().includes("local")) {
     return NextResponse.json(
-      { error: error.message || "Failed to execute generation request." },
-      { status: 500 }
+      { error: "The local AI engine is offline. Configure LOCAL_LLM_URL and LOCAL_LLM_MODEL." },
+      { status: 503 }
     );
+  }
+
+  const system =
+    body.type === "schema"
+      ? "You are a database architect. Return clean SQL DDL statements or JSON schema objects."
+      : "You are a software engineer. Return valid Next.js and TypeScript code.";
+
+  try {
+    const result = await generateText(system, body.prompt.trim().slice(0, 12_000));
+    return NextResponse.json({ success: true, mode: "local", output: result.text });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Local generation failed.";
+    return NextResponse.json({ error: message }, { status: 502 });
   }
 }
