@@ -1,11 +1,22 @@
 import { NextRequest, NextResponse } from "next/server";
 import { availableProviders, generateText } from "@/lib/llm";
-import { clientKey, rateLimited } from "@/lib/rate-limit";
+import { getSession } from "@/lib/auth";
+import { clientKey, rateLimitedPersistently } from "@/lib/rate-limit";
 
 export const runtime = "nodejs";
 
 export async function POST(request: NextRequest) {
-  if (rateLimited(`generate:${clientKey(request)}`, 10, 5 * 60_000)) {
+  const session = await getSession();
+  if (!session) {
+    return NextResponse.json({ error: "Authentication required." }, { status: 401 });
+  }
+  if (
+    await rateLimitedPersistently(
+      `generate:${session.organizationId}:${clientKey(request)}`,
+      10,
+      5 * 60_000
+    )
+  ) {
     return NextResponse.json({ error: "Too many generation requests. Try again shortly." }, { status: 429 });
   }
 

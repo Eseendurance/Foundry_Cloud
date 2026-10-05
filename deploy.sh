@@ -4,7 +4,14 @@ set -Eeuo pipefail
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "$ROOT_DIR"
 
-required=(DATABASE_URL JWT_SECRET SITE_DOMAIN SMTP_HOST EMAIL_FROM)
+if [[ -f .env ]]; then
+  set -a
+  # The root .env is an operator-owned deployment file and is gitignored.
+  source ./.env
+  set +a
+fi
+
+required=(DATABASE_URL JWT_SECRET SITE_DOMAIN)
 for name in "${required[@]}"; do
   if [[ -z "${!name:-}" ]]; then
     printf 'Required environment variable %s is not set.\n' "$name" >&2
@@ -22,6 +29,11 @@ fi
 
 if (( ${#JWT_SECRET} < 32 )); then
   printf 'JWT_SECRET must contain at least 32 characters.\n' >&2
+  exit 1
+fi
+
+if [[ -n "${SMTP_HOST:-}" && -z "${EMAIL_FROM:-}" ]]; then
+  printf 'EMAIL_FROM is required when SMTP_HOST is configured.\n' >&2
   exit 1
 fi
 

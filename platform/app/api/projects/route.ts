@@ -22,8 +22,8 @@ export async function GET() {
 
   try {
     const rows = await query<ProjectRow>(
-      "SELECT id, name, created_at FROM projects WHERE user_id = $1 ORDER BY created_at DESC",
-      [session.userId]
+      "SELECT id, name, created_at FROM projects WHERE org_id = $1 ORDER BY created_at DESC",
+      [session.organizationId]
     );
     return NextResponse.json({ projects: rows });
   } catch (err) {
@@ -60,8 +60,8 @@ export async function POST(req: NextRequest) {
   try {
     const id = randomUUID();
     const rows = await query<ProjectRow>(
-      "INSERT INTO projects (id, user_id, name) VALUES ($1, $2, $3) RETURNING id, name, created_at",
-      [id, session.userId, name]
+      "INSERT INTO projects (id, user_id, org_id, name) VALUES ($1, $2, $3, $4) RETURNING id, name, created_at",
+      [id, session.userId, session.organizationId, name]
     );
     return NextResponse.json({ project: rows[0] });
   } catch (err) {

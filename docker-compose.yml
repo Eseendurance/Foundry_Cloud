@@ -12,11 +12,16 @@ services:
       JWT_SECRET: "${JWT_SECRET:?Set JWT_SECRET to a generated secret}"
       SITE_URL: "https://${SITE_DOMAIN:?Set SITE_DOMAIN to the public host name}"
       FOUNDRY_STORAGE_DIR: /var/lib/foundry/storage
-      SMTP_HOST: "${SMTP_HOST:?Set SMTP_HOST to the self-hosted mail server}"
+      SMTP_HOST: "${SMTP_HOST:-}"
       SMTP_PORT: "${SMTP_PORT:-25}"
       SMTP_USER: "${SMTP_USER:-}"
       SMTP_PASS: "${SMTP_PASS:-}"
-      EMAIL_FROM: "${EMAIL_FROM:?Set EMAIL_FROM to a sender on your mail domain}"
+      EMAIL_FROM: "${EMAIL_FROM:-}"
+      SMTP_HELO_HOST: "${SMTP_HELO_HOST:-}"
+      SMTP_PUBLIC_IP: "${SMTP_PUBLIC_IP:-}"
+      SMTP_WARMUP_DAILY_LIMIT: "${SMTP_WARMUP_DAILY_LIMIT:-50}"
+      DKIM_SELECTOR: "${DKIM_SELECTOR:-}"
+      DKIM_PUBLIC_KEY: "${DKIM_PUBLIC_KEY:-}"
       LOCAL_LLM_URL: "${LOCAL_LLM_URL:-http://ollama:11434/api/chat}"
       LOCAL_LLM_MODEL: "${LOCAL_LLM_MODEL:-}"
     expose:

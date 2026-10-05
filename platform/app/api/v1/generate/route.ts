@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { generateText, availableProviders } from "@/lib/llm";
 import { verifyApiKey } from "@/lib/api-keys";
-import { rateLimited } from "@/lib/rate-limit";
+import { rateLimitedPersistently } from "@/lib/rate-limit";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
@@ -23,8 +23,17 @@ export async function POST(req: NextRequest) {
   if (!identity) {
     return NextResponse.json({ error: "Invalid or revoked API key." }, { status: 401 });
   }
+  if (identity.quotaExceeded) {
+    return NextResponse.json({ error: "Monthly API key quota exceeded." }, { status: 429 });
+  }
 
-  if (rateLimited(`v1-generate:${identity.keyId}`, 20, 60 * 60_000)) {
+  if (
+    await rateLimitedPersistently(
+      `v1-generate:${identity.keyId}`,
+      20,
+      60 * 60_000
+    )
+  ) {
     return NextResponse.json(
       { error: "Rate limit exceeded for this key: 20 requests/hour." },
       { status: 429 }

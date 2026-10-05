@@ -34,6 +34,9 @@ model Organization {
   createdAt        DateTime @default(now()) @map("created_at")
 
   apiKeys ApiKey[]
+  memberships OrganizationMembership[]
+  paymentOrders PaymentOrder[]
+  workflows Workflow[]
 
   @@map("organizations")
 }
@@ -41,14 +44,18 @@ model Organization {
 // 2. Self-Issued API Keys (Hashed Storage)
 model ApiKey {
   id           String    @id @default(uuid()) @db.Uuid
+  userId       String?   @map("user_id")
   orgId        String    @map("org_id") @db.Uuid
   keyHash      String    @unique @map("key_hash")
-  keyPrefix    String    @map("key_prefix") // e.g., "fg_live_9a2b"
+  keyPrefix    String    @map("key_prefix")
   label        String
-  status       KeyStatus @default(ACTIVE)
+  status       String    @default("ACTIVE")
   monthlyQuota Int       @default(1000) @map("monthly_quota")
   currentUsage Int       @default(0) @map("current_usage")
+  usageMonth   DateTime  @default(now()) @map("usage_month") @db.Date
   createdAt    DateTime  @default(now()) @map("created_at")
+  lastUsedAt   DateTime? @map("last_used_at")
+  revokedAt    DateTime? @map("revoked_at")
 
   organization Organization    @relation(fields: [orgId], references: [id], onDelete: Cascade)
   requestLogs  ApiRequestLog[]
@@ -69,6 +76,57 @@ model ApiRequestLog {
   apiKey ApiKey @relation(fields: [keyId], references: [id], onDelete: Cascade)
 
   @@map("api_request_logs")
+}
+
+model OrganizationMembership {
+  orgId       String   @map("organization_id") @db.Uuid
+  userId      String   @map("user_id")
+  role        String
+  createdAt   DateTime @default(now()) @map("created_at")
+  organization Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+
+  @@id([orgId, userId])
+  @@map("organization_memberships")
+}
+
+model PaymentOrder {
+  id                    String   @id @db.Uuid
+  organizationId        String   @map("organization_id") @db.Uuid
+  createdBy             String   @map("created_by")
+  amountMinor           Int      @map("amount_minor")
+  currency              String   @db.Char(3)
+  description           String
+  method                String
+  status                String
+  reference             String   @unique
+  providerTransactionId String?  @map("provider_transaction_id")
+  proofFile             String?  @map("proof_file")
+  proofMime             String?  @map("proof_mime")
+  confirmedBy           String?  @map("confirmed_by")
+  paidAt                DateTime? @map("paid_at")
+  createdAt             DateTime @default(now()) @map("created_at")
+  updatedAt             DateTime @updatedAt @map("updated_at")
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId, createdAt])
+  @@map("payment_orders")
+}
+
+model Workflow {
+  id          String   @id @db.Uuid
+  orgId       String   @map("org_id") @db.Uuid
+  name        String
+  nodesJson   Json     @map("nodes_json")
+  edgesJson   Json     @map("edges_json")
+  isActive    Boolean  @default(true) @map("is_active")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  organization Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+
+  @@index([orgId, updatedAt])
+  @@map("workflows")
 }
 
 // 4. Data Independence Pipeline: Registered Open Sources

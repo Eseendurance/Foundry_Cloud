@@ -7,11 +7,11 @@ export default function Footer() {
         <div className="flex flex-col gap-8 sm:flex-row sm:items-start sm:justify-between">
           <div>
             <span className="font-display text-lg font-medium text-ink">
-              Groundwork
+              Foundry Cloud
             </span>
             <p className="mt-2 max-w-xs text-sm text-ink-soft">
-              Built in the open, one working piece at a time. No demo mode,
-              no staged screenshots.
+              A practical workspace for building software with clear service
+              requirements and no hidden provider branding.
             </p>
           </div>
 
@@ -20,14 +20,14 @@ export default function Footer() {
               <p className="mb-3 font-medium text-ink">Platform</p>
               <ul className="space-y-2 text-ink-soft">
                 <li>
-                  <a href="#log" className="hover:text-ink">
-                    What&apos;s live
-                  </a>
+                  <Link href="/#tools" className="hover:text-ink">
+                    Explore tools
+                  </Link>
                 </li>
                 <li>
-                  <a href="#how" className="hover:text-ink">
-                    How it works
-                  </a>
+                  <Link href="/templates" className="hover:text-ink">
+                    Templates
+                  </Link>
                 </li>
                 <li>
                   <Link href="/dashboard" className="hover:text-ink">
@@ -37,19 +37,21 @@ export default function Footer() {
               </ul>
             </div>
             <div>
-              <p className="mb-3 font-medium text-ink">Company</p>
+              <p className="mb-3 font-medium text-ink">Project</p>
               <ul className="space-y-2 text-ink-soft">
                 <li>
-                  <a href="#waitlist" className="hover:text-ink">
-                    Early access
-                  </a>
+                  <Link href="/status" className="hover:text-ink">
+                    Service status
+                  </Link>
                 </li>
                 <li>
                   <a
-                    href="mailto:hello@groundwork.dev"
+                    href="https://github.com/Eseendurance/Foundry_Cloud"
+                    target="_blank"
+                    rel="noreferrer"
                     className="hover:text-ink"
                   >
-                    Contact
+                    Source repository
                   </a>
                 </li>
               </ul>
@@ -58,8 +60,8 @@ export default function Footer() {
         </div>
 
         <div className="mt-12 flex flex-col gap-2 border-t border-line pt-6 text-xs text-ink-soft sm:flex-row sm:items-center sm:justify-between">
-          <span>© {new Date().getFullYear()} Groundwork.</span>
-          <span>Every claim on this page is either true today or labeled otherwise.</span>
+          <span>© {new Date().getFullYear()} Foundry Cloud.</span>
+          <span>Service availability depends on your deployment and configuration.</span>
         </div>
       </div>
     </footer>

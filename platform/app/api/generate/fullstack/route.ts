@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { generateText, availableProviders } from "@/lib/llm";
 import { scaffoldFiles } from "@/lib/fullstack-scaffold";
-import { rateLimited, clientKey } from "@/lib/rate-limit";
+import { getSession } from "@/lib/auth";
+import { rateLimitedPersistently, clientKey } from "@/lib/rate-limit";
 
 export const runtime = "nodejs";
 export const maxDuration = 90;
@@ -34,7 +35,17 @@ Rules:
 - If the request describes something that isn't a web app (e.g. a mobile app, a CLI tool), say so plainly in "summary" and build the closest reasonable web equivalent instead of pretending.`;
 
 export async function POST(req: NextRequest) {
-  if (rateLimited(`fullstack-generate:${clientKey(req)}`, 5, 10 * 60_000)) {
+  const session = await getSession();
+  if (!session) {
+    return NextResponse.json({ error: "Authentication required." }, { status: 401 });
+  }
+  if (
+    await rateLimitedPersistently(
+      `fullstack-generate:${session.organizationId}:${clientKey(req)}`,
+      5,
+      10 * 60_000
+    )
+  ) {
     return NextResponse.json(
       { error: "Too many full-stack generations in a short window. Wait a bit and try again." },
       { status: 429 }

@@ -1,18 +1,16 @@
 import { NextRequest, NextResponse } from "next/server";
 import { query, databaseConfigured } from "@/lib/db";
 import { verifyPassword, createSession, authConfigured } from "@/lib/auth";
-import { rateLimited, clientKey } from "@/lib/rate-limit";
+import { rateLimitedPersistently, clientKey } from "@/lib/rate-limit";
+import { ensureUserOrganization } from "@/lib/organizations";
 
 export const runtime = "nodejs";
 
-export async function POST(req: NextRequest) {
-  if (rateLimited(`login:${clientKey(req)}`, 15, 10 * 60_000)) {
-    return NextResponse.json(
-      { error: "Too many login attempts. Wait a bit and try again." },
-      { status: 429 }
-    );
-  }
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
 
+export async function POST(req: NextRequest) {
   if (!databaseConfigured() || !authConfigured()) {
     return NextResponse.json(
       {
@@ -22,19 +20,32 @@ export async function POST(req: NextRequest) {
       { status: 500 }
     );
   }
+  if (await rateLimitedPersistently(`login:${clientKey(req)}`, 15, 10 * 60_000)) {
+    return NextResponse.json(
+      { error: "Too many login attempts. Wait a bit and try again." },
+      { status: 429 }
+    );
+  }
 
-  let body: { email?: string; password?: string };
+  let parsed: unknown;
   try {
-    body = await req.json();
+    parsed = await req.json();
   } catch {
     return NextResponse.json(
       { error: "Send this as JSON with email and password." },
       { status: 400 }
     );
   }
+  if (!isRecord(parsed)) {
+    return NextResponse.json({ error: "Send this as a JSON object." }, { status: 400 });
+  }
+  const body = parsed;
 
-  const email = (body.email || "").trim().toLowerCase();
-  const password = body.password || "";
+  const email = typeof body.email === "string" ? body.email.trim().toLowerCase() : "";
+  const password = typeof body.password === "string" ? body.password : "";
+  if (email.length > 254 || password.length > 128) {
+    return NextResponse.json({ error: "Email or password is too long." }, { status: 400 });
+  }
 
   try {
     const rows = await query<{ id: string; password_hash: string }>(
@@ -57,8 +68,9 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    await createSession(rows[0].id, email);
-    return NextResponse.json({ email });
+    const organization = await ensureUserOrganization(rows[0].id, email);
+    await createSession(rows[0].id, email, organization.id, organization.role);
+    return NextResponse.json({ email, organization });
   } catch (err) {
     const msg = err instanceof Error ? err.message : "Login failed.";
     return NextResponse.json(

@@ -59,7 +59,7 @@ export default function AvatarStudioDashboard() {
             <textarea
               className="w-full flex-1 bg-slate-950 border border-slate-800 rounded-lg p-4 text-slate-200 font-sans text-sm focus:outline-none focus:border-purple-500 resize-none mb-4"
               placeholder="Enter the speech script for the avatar to pronounce..."
-              defaultValue="Welcome to Foundry Cloud. Our native pipeline handles domain registration, custom email dispatches, and avatar generation directly from our core raw engine."
+              defaultValue="Welcome to Foundry Cloud. This is a preview of the browser-based media workspace."
             ></textarea>
             <div className="space-y-3 font-sans text-xs">
               <label className="block text-slate-400">Voice Pitch Model</label>

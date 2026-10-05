@@ -1,10 +1,11 @@
-# Foundry-Cloud
+# Foundry Cloud
 
-Foundry-Cloud is a Next.js workspace with a self-hostable raw engine. Neon
-PostgreSQL is the only supported hosted service. Runtime model inference is
-sent only to a configured private/local Ollama-compatible endpoint; speech is
-generated locally by `espeak-ng`; email uses the configured SMTP server. No
-hosted AI, voice, registrar, payment, or GitHub API integration is enabled.
+Foundry Cloud is a Next.js workspace with a self-hostable engine. Neon
+PostgreSQL is the hosted database. Paystack is an optional, explicitly
+configured payment adapter; no AI or email content is sent to hosted providers.
+Runtime model inference is sent only to a configured private/local
+Ollama-compatible endpoint; speech is generated locally by `espeak-ng`; email
+uses the configured SMTP server.
 
 ## Run locally
 
@@ -17,9 +18,15 @@ npm run dev
 ```
 
 The workspace requires `DATABASE_URL` (Neon PostgreSQL) and `JWT_SECRET` for
-accounts and persisted workspace features. Configure `LOCAL_LLM_URL` and
-`LOCAL_LLM_MODEL` to enable AI generation. Speech synthesis additionally
-requires `espeak-ng` installed on the host.
+accounts and persisted workspace features. Apply the checked-in migrations
+before starting the app:
+
+```bash
+npx prisma migrate deploy --schema prisma/schema.prisma
+```
+
+Configure `LOCAL_LLM_URL` and `LOCAL_LLM_MODEL` to enable AI generation.
+Speech synthesis additionally requires `espeak-ng` installed on the host.
 
 Visit `/status` to see real checks for database connectivity, local engine
 TCP, SMTP TCP, and writable persistent storage. Missing or failed services
@@ -50,10 +57,15 @@ operator prerequisites.
 - `/api/voice/*` uses local `espeak-ng`; it does not call a hosted voice
   provider. Full lip-synced video rendering is not yet wired to a worker.
 - API keys are stored as hashes in Neon and are shown only at issuance.
-- Queue/build workers, authoritative DNS provisioning, full email warm-up and
-  deliverability checks, font conversion and catalog management, and verified
-  bank-transfer administration are not yet production-enabled. See the
-  deployment document before enabling any of those modules.
+- Workspace membership, owner/admin/member roles, invitations, per-workspace
+  data isolation, PostgreSQL-backed rate limits, and monthly API key quotas
+  are enforced by the application.
+- Paystack checkouts remain pending until server-side verification succeeds.
+  Bank transfers require proof and a second workspace admin's confirmation.
+- Queue/build workers, authoritative DNS provisioning, email warm-up and
+  deliverability checks, font conversion/catalog, and media rendering queues
+  are not production-enabled. See the deployment document before enabling
+  those modules.
 
 This list is intentionally explicit: a UI or route is not described as
 operational until it is connected to a real service and its health can be

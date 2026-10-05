@@ -11,7 +11,7 @@ export async function GET() {
   }
 
   try {
-    const emails = await listSentEmails(session.userId);
+    const emails = await listSentEmails(session.organizationId);
     return NextResponse.json({ emails });
   } catch (err) {
     const msg = err instanceof Error ? err.message : "Couldn't load sent emails.";

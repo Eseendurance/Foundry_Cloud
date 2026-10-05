@@ -5,7 +5,7 @@ export const dynamic = "force-dynamic";
 export default async function StatusPage() {
   const health = await getPlatformHealth();
   const services = [
-    ["Neon PostgreSQL", health.services.database],
+    ["PostgreSQL database", health.services.database],
     ["Raw engine", health.services.engine],
     ["SMTP server", health.services.smtp],
     ["Persistent storage", health.services.storage],
@@ -14,7 +14,7 @@ export default async function StatusPage() {
   return (
     <main className="mx-auto min-h-screen max-w-4xl px-4 py-10 text-slate-950 sm:px-8">
       <header className="border-b border-slate-300 pb-6">
-        <p className="font-mono text-xs uppercase tracking-widest text-blue-700">Foundry-Cloud</p>
+        <p className="font-mono text-xs uppercase tracking-widest text-blue-700">Foundry Cloud</p>
         <h1 className="mt-2 text-3xl font-semibold tracking-tight">System status</h1>
         <p className="mt-2 text-sm text-slate-600">
           Live connection checks for the configured database, engine, mail server, and storage.

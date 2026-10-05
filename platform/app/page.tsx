@@ -1,75 +1,99 @@
-import Nav from "@/components/Nav";
-import Footer from "@/components/Footer";
-import BuildLog from "@/components/BuildLog";
-import WaitlistForm from "@/components/WaitlistForm";
-import HeroLayers from "@/components/HeroLayers";
+import Link from "next/link";
 import {
+  ArrowRight,
+  Boxes,
+  Braces,
   Database,
+  Globe2,
+  HardDrive,
+  KeyRound,
   Mail,
-  Globe,
-  Video,
-  Code2,
-  Sparkles,
-  Search,
-  Eye,
-  GitBranch,
-  ShieldCheck,
+  Palette,
+  Workflow,
 } from "lucide-react";
+import Footer from "@/components/Footer";
+import Nav from "@/components/Nav";
 
-const pillars = [
+const tools = [
   {
-    icon: Sparkles,
-    name: "AI app builder",
-    desc: "Describe what you want. Real AI (Anthropic, Gemini, or DeepSeek — whichever you have connected) streams back a working single-page app you can preview, edit, and keep.",
+    title: "App builder",
+    description:
+      "Edit project files and preview browser-ready HTML, CSS, and JavaScript in the workspace.",
+    href: "/builder",
+    icon: Braces,
+    detail: "Code and preview",
   },
   {
-    icon: Code2,
-    name: "In-browser IDE",
-    desc: "A real Monaco editor — the same one behind VS Code — with a live preview pane. Full terminal and npm support are next.",
-  },
-  {
+    title: "Database",
+    description:
+      "Inspect tables and run queries against the PostgreSQL database configured for your deployment.",
+    href: "/database",
     icon: Database,
-    name: "Workspace database",
-    desc: "A Postgres database and auth system provisioned per project, with row-level security by default.",
+    detail: "PostgreSQL connection required",
   },
   {
+    title: "Email",
+    description:
+      "Send transactional messages through your configured SMTP server and inspect domain records.",
+    href: "/email",
     icon: Mail,
-    name: "Transactional email",
-    desc: "Send real email through your own SMTP account with real open/click tracking, and check any domain's live SPF/DMARC setup — no key needed for the checker.",
+    detail: "SMTP connection required",
   },
   {
-    icon: Globe,
-    name: "Domain lookup",
-    desc: "Real RDAP registry data and live DNS records for any domain. Purchasing needs a connected registrar account — not live yet.",
+    title: "Workflows",
+    description:
+      "Build and execute workflow steps, with results depending on the services you configure.",
+    href: "/workflows",
+    icon: Workflow,
+    detail: "Workspace tools",
   },
   {
-    icon: Video,
-    name: "AI voice",
-    desc: "Real text-to-speech, generated on request. A lip-synced video avatar is the next increment, once a GPU renderer is connected.",
+    title: "Domains",
+    description:
+      "Check public DNS records. Domain registration and registrar operations are not enabled.",
+    href: "/domains",
+    icon: Globe2,
+    detail: "DNS inspection",
   },
   {
-    icon: Search,
-    name: "Search",
-    desc: "Real full-text and typo-tolerant search, built entirely into your own database — nothing extra to sign up for or pay for.",
-  },
-];
-
-const steps = [
-  {
-    title: "Say what you are building",
-    desc: "In plain language — a waitlist page, a booking tool, an internal dashboard.",
+    title: "Media studio",
+    description:
+      "Preview the browser-based avatar and speech tools included with the workspace.",
+    href: "/avatar",
+    icon: Palette,
+    detail: "Browser preview",
   },
   {
-    title: "Watch the code take shape",
-    desc: "Files appear in a real editor. You can read every line, not just the preview.",
+    title: "API keys",
+    description:
+      "Issue and revoke keys for your account. The secret is displayed only when it is created.",
+    href: "/settings/keys",
+    icon: KeyRound,
+    detail: "Account required",
   },
   {
-    title: "Connect the pieces you need",
-    desc: "A database, a domain, a sending address — added when your project actually needs them.",
+    title: "File storage",
+    description:
+      "Browse files from the storage location configured for your server.",
+    href: "/storage",
+    icon: HardDrive,
+    detail: "Server storage required",
   },
   {
-    title: "Ship it",
-    desc: "Push to your own GitHub, deploy to your own hosting. Nothing is locked to us.",
+    title: "Templates",
+    description:
+      "Browse the project starting points available in this deployment.",
+    href: "/templates",
+    icon: Boxes,
+    detail: "Browse templates",
+  },
+  {
+    title: "Service status",
+    description:
+      "See live checks for the database, configured engine, SMTP server, and storage directory.",
+    href: "/status",
+    icon: ArrowRight,
+    detail: "Live health checks",
   },
 ];
 
@@ -77,168 +101,137 @@ export default function Home() {
   return (
     <div className="min-h-screen bg-paper">
       <Nav />
-
-      {/* Hero */}
-      <section className="mx-auto max-w-6xl px-6 pb-16 pt-16 sm:pb-24 sm:pt-24">
-        <div className="grid items-center gap-12 lg:grid-cols-[1.1fr_0.9fr]">
-          <div>
-            <span className="inline-flex items-center gap-2 rounded-full border border-line bg-paper-dim px-3 py-1 text-xs text-ink-soft">
-              <span className="h-1.5 w-1.5 rounded-full bg-moss" />
-              Built in the open — see what is live below
-            </span>
-
-            <h1 className="mt-6 font-display text-4xl leading-[1.08] tracking-tight text-ink sm:text-5xl lg:text-6xl">
-              A developer platform that tells you
-              <span className="italic text-moss"> what is actually working.</span>
-            </h1>
-
-            <p className="mt-6 max-w-xl text-lg leading-relaxed text-ink-soft">
-              Groundwork is building the tools to take an idea from a
-              sentence to a shipped product — an app builder, a code editor,
-              a database, eventually a domain and an inbox. We are not
-              pretending it is all done. The log below shows exactly what
-              you can use today.
+      <main>
+        <section className="mx-auto grid max-w-6xl gap-12 px-6 pb-16 pt-16 sm:pb-20 sm:pt-24 lg:grid-cols-[1fr_0.75fr] lg:items-center">
+          <div className="animate-rise">
+            <p className="inline-flex items-center gap-2 rounded-full border border-line bg-white px-3 py-1 text-xs text-ink-soft">
+              <span className="h-2 w-2 rounded-full bg-blue-trust" />
+              Built for teams who want control of their tools
             </p>
-
-            <div className="mt-8 flex flex-wrap gap-4">
-              <a
-                href="/build"
-                className="rounded-full bg-moss px-6 py-3.5 text-sm font-medium text-paper transition-colors hover:bg-moss-deep"
+            <h1 className="mt-6 max-w-3xl font-display text-4xl font-semibold leading-tight tracking-tight text-ink sm:text-5xl lg:text-6xl">
+              Your workbench for building and running software.
+            </h1>
+            <p className="mt-6 max-w-2xl text-lg leading-relaxed text-ink-soft">
+              Foundry Cloud brings your editor, project data, workflows, and
+              operational tools into one self-hostable workspace. Connect only
+              the services you choose, and see clearly when a feature needs
+              setup.
+            </p>
+            <div className="mt-8 flex flex-wrap gap-3">
+              <Link
+                href="/dashboard"
+                className="inline-flex items-center gap-2 rounded-md bg-blue-trust px-5 py-3 text-sm font-semibold text-white transition hover:bg-blue-700"
               >
-                Try the app builder — it is live
-              </a>
+                Open your workspace <ArrowRight size={16} />
+              </Link>
               <a
-                href="#log"
-                className="rounded-full border border-line px-6 py-3.5 text-sm font-medium text-ink transition-colors hover:border-ink"
+                href="#tools"
+                className="rounded-md border border-line bg-white px-5 py-3 text-sm font-semibold text-ink transition hover:border-blue-400 hover:text-blue-700"
               >
-                See the build log
+                Explore the tools
               </a>
             </div>
           </div>
 
-          <div className="flex justify-center lg:justify-end">
-            <HeroLayers />
-          </div>
-        </div>
-      </section>
-
-      {/* Build log */}
-      <section id="log" className="mx-auto max-w-6xl px-6 py-16">
-        <div className="mb-8 max-w-2xl">
-          <h2 className="font-display text-2xl text-ink sm:text-3xl">
-            What is live right now
-          </h2>
-          <p className="mt-3 text-ink-soft">
-            No feature on this page ships until it does real work. Here is
-            the honest state of every piece, updated as we go.
-          </p>
-        </div>
-        <BuildLog />
-      </section>
-
-      {/* Pillars */}
-      <section className="border-y border-line bg-paper-dim/60">
-        <div className="mx-auto max-w-6xl px-6 py-16">
-          <div className="mb-10 max-w-2xl">
-            <h2 className="font-display text-2xl text-ink sm:text-3xl">
-              Six tools, one workspace
-            </h2>
-            <p className="mt-3 text-ink-soft">
-              Each one is being built to work on its own — use only the
-              pieces your project needs.
+          <aside className="animate-rise-delayed rounded-2xl border border-line bg-white p-6 shadow-sm">
+            <p className="font-mono text-xs uppercase tracking-[0.16em] text-blue-700">
+              A clear starting point
             </p>
-          </div>
+            <h2 className="mt-4 text-xl font-semibold text-ink">
+              Start with one project.
+            </h2>
+            <p className="mt-2 text-sm leading-relaxed text-ink-soft">
+              Open a tool, connect the services you need, and keep your code
+              and data under your control.
+            </p>
+            <ul className="mt-6 space-y-3 border-t border-line pt-5 text-sm text-ink-soft">
+              <li className="flex items-center gap-3">
+                <span className="h-1.5 w-1.5 rounded-full bg-blue-trust" />
+                Project code and preview
+              </li>
+              <li className="flex items-center gap-3">
+                <span className="h-1.5 w-1.5 rounded-full bg-blue-trust" />
+                Data and service connections
+              </li>
+              <li className="flex items-center gap-3">
+                <span className="h-1.5 w-1.5 rounded-full bg-blue-trust" />
+                Clear setup and health information
+              </li>
+            </ul>
+          </aside>
+        </section>
 
-          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-            {pillars.map((p) => (
-              <div
-                key={p.name}
-                className="rounded-2xl border border-line bg-paper p-6"
-              >
-                <p.icon className="text-moss" size={22} strokeWidth={1.75} />
-                <h3 className="mt-4 font-medium text-ink">{p.name}</h3>
-                <p className="mt-2 text-sm leading-relaxed text-ink-soft">
-                  {p.desc}
-                </p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* How it works */}
-      <section id="how" className="mx-auto max-w-6xl px-6 py-20">
-        <div className="mb-10 max-w-2xl">
-          <h2 className="font-display text-2xl text-ink sm:text-3xl">
-            How it is meant to work
-          </h2>
-          <p className="mt-3 text-ink-soft">
-            This is the path we are building toward. Steps already live
-            are marked in the log above.
-          </p>
-        </div>
-
-        <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-4">
-          {steps.map((s, i) => (
-            <div key={s.title}>
-              <span className="font-mono text-sm text-moss">
-                {String(i + 1).padStart(2, "0")}
-              </span>
-              <h3 className="mt-3 font-medium text-ink">{s.title}</h3>
-              <p className="mt-2 text-sm leading-relaxed text-ink-soft">
-                {s.desc}
+        <section id="tools" className="border-y border-line bg-slate-50">
+          <div className="mx-auto max-w-6xl px-6 py-16 sm:py-20">
+            <div className="mb-8 max-w-2xl">
+              <p className="font-mono text-xs uppercase tracking-[0.16em] text-blue-700">
+                The workspace
+              </p>
+              <h2 className="mt-3 font-display text-3xl font-semibold tracking-tight text-ink sm:text-4xl">
+                Choose the tool you need.
+              </h2>
+              <p className="mt-3 leading-relaxed text-ink-soft">
+                Each card opens its own workspace. Connection-dependent
+                features explain their requirements instead of implying a
+                service is already configured.
               </p>
             </div>
-          ))}
-        </div>
-      </section>
 
-      {/* Trust */}
-      <section className="border-y border-line bg-ink">
-        <div className="mx-auto grid max-w-6xl gap-10 px-6 py-16 sm:grid-cols-3">
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+              {tools.map((tool, index) => (
+                <Link
+                  key={tool.href}
+                  href={tool.href}
+                  className="group animate-rise rounded-xl border border-line bg-white p-5 transition duration-200 hover:-translate-y-1 hover:border-blue-300 hover:shadow-md"
+                  style={{ animationDelay: `${index * 55}ms` }}
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <span className="flex h-10 w-10 items-center justify-center rounded-lg bg-blue-50 text-blue-700">
+                      <tool.icon size={20} strokeWidth={1.8} />
+                    </span>
+                    <ArrowRight
+                      size={16}
+                      className="mt-1 text-slate-400 transition group-hover:translate-x-1 group-hover:text-blue-700"
+                    />
+                  </div>
+                  <h3 className="mt-5 font-semibold text-ink">{tool.title}</h3>
+                  <p className="mt-2 min-h-16 text-sm leading-relaxed text-ink-soft">
+                    {tool.description}
+                  </p>
+                  <span className="mt-4 inline-block border-t border-line pt-3 font-mono text-[11px] uppercase tracking-wider text-blue-700">
+                    {tool.detail}
+                  </span>
+                </Link>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        <section className="mx-auto grid max-w-6xl gap-8 px-6 py-16 sm:py-20 md:grid-cols-[0.8fr_1.2fr]">
           <div>
-            <Eye className="text-amber" size={22} strokeWidth={1.75} />
-            <h3 className="mt-4 font-medium text-paper">No staged demos</h3>
-            <p className="mt-2 text-sm leading-relaxed text-paper/60">
-              If it is marked live, it responds to real input and does
-              real work — including this page signup form.
+            <p className="font-mono text-xs uppercase tracking-[0.16em] text-blue-700">
+              Built to be transparent
             </p>
+            <h2 className="mt-3 font-display text-3xl font-semibold tracking-tight text-ink">
+              No inflated status claims.
+            </h2>
           </div>
           <div>
-            <GitBranch className="text-amber" size={22} strokeWidth={1.75} />
-            <h3 className="mt-4 font-medium text-paper">You keep the code</h3>
-            <p className="mt-2 text-sm leading-relaxed text-paper/60">
-              What you build is plain HTML, CSS, and JavaScript today —
-              React and Next.js scaffolding is next. Export it, push it to
-              your own GitHub, run it anywhere.
+            <p className="leading-relaxed text-ink-soft">
+              Foundry Cloud shows service health from real checks, and makes
+              integrations that are not configured clear. A green badge should
+              mean a check actually passed—not that a page is presenting a
+              demo.
             </p>
+            <Link
+              href="/status"
+              className="mt-5 inline-flex items-center gap-2 text-sm font-semibold text-blue-700 hover:text-blue-900"
+            >
+              View current service checks <ArrowRight size={16} />
+            </Link>
           </div>
-          <div>
-            <ShieldCheck className="text-amber" size={22} strokeWidth={1.75} />
-            <h3 className="mt-4 font-medium text-paper">No account required to look</h3>
-            <p className="mt-2 text-sm leading-relaxed text-paper/60">
-              Browse the workspace shell without signing up. Create an
-              account only when you want a project to actually persist —
-              that is a real Postgres row, not a cookie trick.
-            </p>
-          </div>
-        </div>
-      </section>
-
-      {/* Waitlist */}
-      <section id="waitlist" className="mx-auto max-w-3xl px-6 py-20 text-center">
-        <h2 className="font-display text-2xl text-ink sm:text-3xl">
-          Follow along, or get pulled in early
-        </h2>
-        <p className="mx-auto mt-3 max-w-xl text-ink-soft">
-          Tell us what you are hoping to build. When the piece you need
-          goes live, you will be the first to hear — once, by email.
-        </p>
-        <div className="mx-auto mt-8 max-w-lg">
-          <WaitlistForm />
-        </div>
-      </section>
-
+        </section>
+      </main>
       <Footer />
     </div>
   );

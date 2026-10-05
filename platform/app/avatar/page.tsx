@@ -9,7 +9,7 @@ export default function AvatarStudio() {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   
   const [script, setScript] = useState<string>(
-    'Welcome to Platform Gamma Neon. This avatar runs 100% locally on your browser and raw engine without third-party API dependencies or watermarks.'
+    "Welcome to Foundry Cloud. Customize this short script, then preview the browser-based avatar."
   );
   const [isSpeaking, setIsSpeaking] = useState<boolean>(false);
   const engineRef = useRef<{ startSpeech: () => void; stopSpeech: () => void } | null>(null);
@@ -38,31 +38,28 @@ export default function AvatarStudio() {
   };
 
   return (
-    <div className="flex flex-col h-screen bg-slate-950 text-slate-100">
+    <div className="flex min-h-screen flex-col bg-white text-slate-950">
       {/* Header */}
-      <header className="flex justify-between items-center px-6 py-3 bg-slate-900 border-b border-slate-800">
+      <header className="flex items-center justify-between border-b border-slate-200 bg-white px-6 py-3">
         <div className="flex items-center gap-2">
-          <span className="font-bold text-sky-400">AI Avatar Studio</span>
-          <span className="text-xs px-2 py-0.5 bg-emerald-950 text-emerald-300 border border-emerald-800 rounded">
-            Zero Watermark Engine
-          </span>
+          <span className="font-semibold text-slate-950">Media Studio</span>
         </div>
         <button
           onClick={() => router.push('/dashboard')}
-          className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-medium rounded-lg border border-slate-700 transition"
+          className="rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs font-medium text-slate-700 transition hover:border-blue-500 hover:text-blue-700"
         >
           ✕ Exit Studio
         </button>
       </header>
 
       {/* Main Studio Body */}
-      <div className="flex flex-1 overflow-hidden">
+      <div className="flex flex-1 flex-col overflow-hidden lg:flex-row">
         {/* Left: Video Preview Canvas */}
-        <div className="w-2/3 p-6 flex flex-col justify-center items-center bg-slate-950">
-          <div className="relative border border-slate-800 rounded-xl overflow-hidden shadow-2xl bg-slate-900">
-            <canvas ref={canvasRef} className="w-[800px] h-[450px] object-cover" />
+        <div className="flex min-h-80 flex-1 flex-col items-center justify-center bg-slate-50 p-4 sm:p-6">
+          <div className="relative max-w-full overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
+            <canvas ref={canvasRef} className="h-auto max-h-[65vh] w-full max-w-[800px] object-cover" />
             {isSpeaking && (
-              <div className="absolute top-4 left-4 px-3 py-1 bg-red-500/80 text-white text-xs font-semibold rounded-full animate-pulse">
+              <div className="absolute left-4 top-4 rounded-full bg-blue-700 px-3 py-1 text-xs font-semibold text-white animate-pulse">
                 ● Speaking
               </div>
             )}
@@ -70,23 +67,23 @@ export default function AvatarStudio() {
         </div>
 
         {/* Right: Controls & Script Input */}
-        <div className="w-1/3 border-l border-slate-800 bg-slate-900 p-6 flex flex-col gap-4">
-          <h2 className="text-sm font-semibold text-slate-300">Avatar Script & Settings</h2>
+        <div className="flex w-full flex-col gap-4 border-t border-slate-200 bg-white p-5 lg:w-96 lg:border-l lg:border-t-0">
+          <h2 className="text-sm font-semibold text-slate-950">Avatar script</h2>
           
           <div className="flex flex-col gap-2">
-            <label className="text-xs text-slate-400">Script Text</label>
+            <label className="text-xs text-slate-600">Script text</label>
             <textarea
               value={script}
               onChange={(e) => setScript(e.target.value)}
               rows={6}
-              className="w-full bg-slate-950 border border-slate-800 rounded-lg p-3 text-sm text-slate-200 focus:outline-none focus:border-sky-500"
+              className="w-full rounded-lg border border-slate-300 bg-white p-3 text-sm text-slate-900 focus:border-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-100"
               placeholder="Enter speech script here..."
             />
           </div>
 
           <button
             onClick={handleGenerate}
-            className="w-full py-2.5 bg-sky-500 hover:bg-sky-400 text-white font-semibold rounded-lg shadow transition"
+            className="w-full rounded-lg bg-blue-700 py-2.5 font-semibold text-white shadow-sm transition hover:bg-blue-800"
           >
             Render & Speak Avatar
           </button>

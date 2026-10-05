@@ -9,18 +9,18 @@ import "./globals.css";
 
 export const metadata: Metadata = {
   metadataBase: new URL(process.env.SITE_URL || "https://example.com"),
-  title: "Foundry-Cloud",
+  title: "Foundry Cloud",
   description:
-    "A self-hosted developer workspace with native application, data, automation, and infrastructure tools.",
+    "A self-hostable workspace for building applications and managing your project infrastructure.",
   openGraph: {
-    title: "Foundry-Cloud",
-    description: "A self-hosted developer workspace and native engine platform.",
+    title: "Foundry Cloud",
+    description: "A self-hostable workspace for building and operating software.",
     type: "website",
   },
   twitter: {
     card: "summary_large_image",
-    title: "Foundry-Cloud",
-    description: "A self-hosted developer workspace and native engine platform.",
+    title: "Foundry Cloud",
+    description: "A self-hostable workspace for building and operating software.",
   },
 };
 

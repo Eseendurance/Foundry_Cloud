@@ -11,7 +11,10 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   }
 
   const { id } = await params;
-  const ok = await revokeApiKey(session.userId, id);
+  if (session.role === "member") {
+    return NextResponse.json({ error: "Only workspace admins can revoke API keys." }, { status: 403 });
+  }
+  const ok = await revokeApiKey(session.organizationId, id);
   if (!ok) {
     return NextResponse.json({ error: "Key not found, or already revoked." }, { status: 404 });
   }

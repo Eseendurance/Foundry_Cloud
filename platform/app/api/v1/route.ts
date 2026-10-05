@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { availableProviders, generateText } from "@/lib/llm";
 import { verifyApiKey } from "@/lib/api-keys";
-import { clientKey, rateLimited } from "@/lib/rate-limit";
+import { clientKey, rateLimitedPersistently } from "@/lib/rate-limit";
 
 export const runtime = "nodejs";
 
@@ -22,7 +22,16 @@ export async function POST(request: NextRequest) {
   if (!identity) {
     return NextResponse.json({ error: "A valid Foundry API key is required." }, { status: 401 });
   }
-  if (rateLimited(`api-v1:${identity.keyId}:${clientKey(request)}`, 30, 60_000)) {
+  if (identity.quotaExceeded) {
+    return NextResponse.json({ error: "Monthly API key quota exceeded." }, { status: 429 });
+  }
+  if (
+    await rateLimitedPersistently(
+      `api-v1:${identity.keyId}:${clientKey(request)}`,
+      30,
+      60_000
+    )
+  ) {
     return NextResponse.json({ error: "API request limit exceeded. Try again shortly." }, { status: 429 });
   }
 

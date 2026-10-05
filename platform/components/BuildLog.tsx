@@ -14,13 +14,13 @@ const entries: Entry[] = [
   },
   {
     status: "live",
-    name: "AI app builder",
-    note: "Describe an app, get back a real running single-page app, generated live via Claude, Gemini, or DeepSeek — whichever you've connected.",
+    name: "App builder",
+    note: "The builder includes a code editor and browser preview; the current preview supports HTML, CSS, and JavaScript.",
   },
   {
     status: "live",
     name: "Workspace database & accounts",
-    note: "Real signup/login with hashed passwords and per-user Postgres data, not a mock.",
+    note: "Sign-in and project data require a working PostgreSQL connection in your deployment.",
   },
   {
     status: "live",
@@ -30,17 +30,17 @@ const entries: Entry[] = [
   {
     status: "live",
     name: "Transactional email",
-    note: "Real SMTP sending with real open/click tracking (like Resend), plus a live SPF/DMARC domain checker that needs no key at all.",
+    note: "Message delivery requires your SMTP server. Domain checks inspect DNS records and do not change them.",
   },
   {
     status: "live",
-    name: "Domain lookup",
-    note: "Real RDAP registry lookups and live DNS records. Buying a domain still needs a registrar account — not wired up.",
+    name: "DNS inspection",
+    note: "The workspace can inspect DNS records. Registrar search and purchases are not enabled.",
   },
   {
     status: "live",
-    name: "AI voice",
-    note: "Real text-to-speech via ElevenLabs. The talking video avatar needs a GPU renderer we haven't connected yet.",
+    name: "Local voice tools",
+    note: "Speech features depend on local voice software being installed and available to the server.",
   },
   {
     status: "live",

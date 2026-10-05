@@ -1,5 +1,5 @@
 import crypto from "crypto";
-import { prisma } from "@/lib/prisma";
+import { verifyApiKey } from "@/lib/api-keys";
 
 export function generatePlatformKey(): { rawKey: string; keyHash: string; keyPrefix: string } {
   const randomBytes = crypto.randomBytes(24).toString("hex");
@@ -15,29 +15,15 @@ export async function validatePlatformKey(rawKey: string) {
     return { valid: false, reason: "Invalid key format." };
   }
 
-  const keyHash = crypto.createHash("sha256").update(rawKey).digest("hex");
-  const apiKeyRecord = await prisma.apiKey.findUnique({
-    where: { keyHash },
-    include: { organization: true },
-  });
-
-  if (!apiKeyRecord) {
+  const identity = await verifyApiKey(rawKey);
+  if (!identity) {
     return { valid: false, reason: "Key not found." };
   }
-
-  if (apiKeyRecord.status !== "ACTIVE") {
-    return { valid: false, reason: "Key is revoked." };
-  }
-
-  if (apiKeyRecord.currentUsage >= apiKeyRecord.monthlyQuota) {
+  if (identity.quotaExceeded) {
     return { valid: false, reason: "Monthly usage quota exceeded." };
   }
-
-  // Atomically increment quota counter
-  await prisma.apiKey.update({
-    where: { id: apiKeyRecord.id },
-    data: { currentUsage: { increment: 1 } },
-  });
-
-  return { valid: true, apiKeyRecord };
+  return {
+    valid: true,
+    apiKeyRecord: { id: identity.keyId, organizationId: identity.organizationId },
+  };
 }

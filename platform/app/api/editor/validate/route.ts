@@ -1,12 +1,23 @@
 import { NextRequest, NextResponse } from "next/server";
 import { parsePipeDSL } from "@/raw-engine/engine/parser";
 import { executeAST } from "@/raw-engine/runtime/evaluator";
-import { clientKey, rateLimited } from "@/lib/rate-limit";
+import { getSession } from "@/lib/auth";
+import { clientKey, rateLimitedPersistently } from "@/lib/rate-limit";
 
 export const runtime = "nodejs";
 
 export async function POST(request: NextRequest) {
-  if (rateLimited(`editor-validate:${clientKey(request)}`, 30, 60_000)) {
+  const session = await getSession();
+  if (!session) {
+    return NextResponse.json({ error: "Authentication required." }, { status: 401 });
+  }
+  if (
+    await rateLimitedPersistently(
+      `editor-validate:${session.organizationId}:${clientKey(request)}`,
+      30,
+      60_000
+    )
+  ) {
     return NextResponse.json({ error: "Too many validation requests." }, { status: 429 });
   }
 

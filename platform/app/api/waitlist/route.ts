@@ -45,7 +45,7 @@ export async function POST(req: NextRequest) {
 
   // Persist the signup. This logs to the platform's function logs today —
   // visible in `vercel logs` or the Vercel dashboard — which is real and
-  // inspectable. Point this at a database (Postgres, Supabase, etc.) as
+  // inspectable. Point this at a database as
   // soon as Module B (BaaS) ships, without changing the form or this
   // route's contract.
   console.log(

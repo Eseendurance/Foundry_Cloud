@@ -1,11 +1,27 @@
 import nodemailer, { type Transporter } from "nodemailer";
 import { randomUUID } from "crypto";
+import { isIP } from "node:net";
 import { query } from "@/lib/db";
+import { rateLimitedPersistently } from "@/lib/rate-limit";
 
 export function smtpConfigured(): boolean {
+  const port = Number(process.env.SMTP_PORT || 587);
+  const sender = process.env.EMAIL_FROM || "";
+  const mailbox = sender.match(/<([^<>]+)>/)?.[1] || sender;
+  const validSender = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(mailbox);
+  const warmupLimit = Number(process.env.SMTP_WARMUP_DAILY_LIMIT || 50);
+  const heloHost = process.env.SMTP_HELO_HOST || "";
   return Boolean(
     process.env.SMTP_HOST &&
-      process.env.EMAIL_FROM &&
+      validSender &&
+      /^[A-Za-z0-9.-]+$/.test(heloHost) &&
+      isIP(process.env.SMTP_PUBLIC_IP || "") &&
+      Number.isInteger(port) &&
+      port >= 1 &&
+      port <= 65_535 &&
+      Number.isInteger(warmupLimit) &&
+      warmupLimit >= 1 &&
+      warmupLimit <= 100_000 &&
       Boolean(process.env.SMTP_USER) === Boolean(process.env.SMTP_PASS)
   );
 }
@@ -17,6 +33,7 @@ function getTransporter(): Transporter {
     transporter = nodemailer.createTransport({
       host: process.env.SMTP_HOST,
       port: Number(process.env.SMTP_PORT || 587),
+      name: process.env.SMTP_HELO_HOST,
       secure: Number(process.env.SMTP_PORT) === 465,
       auth:
         process.env.SMTP_USER && process.env.SMTP_PASS
@@ -40,6 +57,30 @@ function escapeHtml(s: string): string {
 
 function siteUrl(): string | null {
   return process.env.SITE_URL?.replace(/\/+$/, "") || null;
+}
+
+async function enforceSendingWarmupLimit(): Promise<void> {
+  const sender = process.env.EMAIL_FROM || "";
+  const mailbox = sender.match(/<([^<>]+)>/)?.[1] || sender;
+  const domain = mailbox.match(/^[^\s@]+@([^\s@]+)$/)?.[1]?.toLowerCase();
+  const publicIp = process.env.SMTP_PUBLIC_IP;
+  const dailyLimit = Number(process.env.SMTP_WARMUP_DAILY_LIMIT || 50);
+  if (!domain || !publicIp || !isIP(publicIp)) {
+    throw new Error("Set EMAIL_FROM to a valid sender and SMTP_PUBLIC_IP to the server's public IP before sending.");
+  }
+  if (!Number.isInteger(dailyLimit) || dailyLimit < 1 || dailyLimit > 100_000) {
+    throw new Error("SMTP_WARMUP_DAILY_LIMIT must be an integer from 1 to 100000.");
+  }
+  if (
+    await rateLimitedPersistently(`smtp-domain:${domain}`, dailyLimit, 24 * 60 * 60_000)
+  ) {
+    throw new Error(`The 24-hour warm-up limit for sending domain ${domain} has been reached.`);
+  }
+  if (
+    await rateLimitedPersistently(`smtp-ip:${publicIp}`, dailyLimit, 24 * 60 * 60_000)
+  ) {
+    throw new Error("The 24-hour warm-up limit for this sending IP has been reached.");
+  }
 }
 
 /**
@@ -71,6 +112,7 @@ function buildTrackedHtml(id: string, text: string, linkLabel?: string): string 
 
 export async function sendEmail(opts: {
   userId: string;
+  organizationId: string;
   to: string;
   subject: string;
   text: string;
@@ -80,6 +122,7 @@ export async function sendEmail(opts: {
   if (!smtpConfigured()) {
     throw new Error("The local SMTP server is not configured.");
   }
+  await enforceSendingWarmupLimit();
   const from = process.env.EMAIL_FROM!;
   const trackingId = randomUUID();
   const trackingPixel = siteUrl()
@@ -98,8 +141,8 @@ export async function sendEmail(opts: {
   });
 
   await query(
-    "INSERT INTO sent_emails (id, user_id, to_email, subject, link_url) VALUES ($1, $2, $3, $4, $5)",
-    [trackingId, opts.userId, opts.to, opts.subject, opts.link?.url || null]
+    "INSERT INTO sent_emails (id, user_id, org_id, to_email, subject, link_url) VALUES ($1, $2, $3, $4, $5, $6)",
+    [trackingId, opts.userId, opts.organizationId, opts.to, opts.subject, opts.link?.url || null]
   );
 
   return { messageId: info.messageId, trackingId };
@@ -114,10 +157,10 @@ export type SentEmail = {
   click_count: number;
 };
 
-export async function listSentEmails(userId: string): Promise<SentEmail[]> {
+export async function listSentEmails(organizationId: string): Promise<SentEmail[]> {
   return query<SentEmail>(
-    "SELECT id, to_email, subject, sent_at, opened_at, click_count FROM sent_emails WHERE user_id = $1 ORDER BY sent_at DESC LIMIT 50",
-    [userId]
+    "SELECT id, to_email, subject, sent_at, opened_at, click_count FROM sent_emails WHERE org_id = $1 ORDER BY sent_at DESC LIMIT 50",
+    [organizationId]
   );
 }
 

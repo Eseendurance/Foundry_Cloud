@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSession } from "@/lib/auth";
 import { sendEmail, smtpConfigured } from "@/lib/email";
-import { clientKey, rateLimited } from "@/lib/rate-limit";
+import { clientKey, rateLimitedPersistently } from "@/lib/rate-limit";
 
 export const runtime = "nodejs";
 
@@ -23,7 +23,13 @@ export async function POST(request: NextRequest) {
   if (!session) {
     return NextResponse.json({ error: "Authentication required." }, { status: 401 });
   }
-  if (rateLimited(`email-send:${clientKey(request)}`, 10, 60_000)) {
+  if (
+    await rateLimitedPersistently(
+      `email-send:${session.organizationId}:${clientKey(request)}`,
+      10,
+      60_000
+    )
+  ) {
     return NextResponse.json({ error: "Too many messages. Try again shortly." }, { status: 429 });
   }
   if (!smtpConfigured()) {
@@ -76,6 +82,7 @@ export async function POST(request: NextRequest) {
   try {
     const result = await sendEmail({
       userId: session.userId,
+      organizationId: session.organizationId,
       to: body.to.trim(),
       subject: body.subject.trim(),
       html,

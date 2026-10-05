@@ -21,7 +21,7 @@ export async function GET(req: NextRequest) {
   const q = req.nextUrl.searchParams.get("q") || "";
 
   try {
-    const hits = await searchProjects(session.userId, q);
+    const hits = await searchProjects(session.organizationId, q);
     return NextResponse.json({ hits });
   } catch (err) {
     const msg = err instanceof Error ? err.message : "Search failed.";

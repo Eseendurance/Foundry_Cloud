@@ -1,6 +1,7 @@
 import { NextRequest } from "next/server";
 import { generateText, availableProviders } from "@/lib/llm";
-import { rateLimited, clientKey } from "@/lib/rate-limit";
+import { getSession } from "@/lib/auth";
+import { rateLimitedPersistently, clientKey } from "@/lib/rate-limit";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
@@ -18,7 +19,15 @@ Rules:
 - If asked to do something outside that scope (e.g. requiring a real backend, a database, or an npm package), say so plainly in "message" and don't fake it with placeholder code.`;
 
 export async function POST(req: NextRequest) {
-  if (rateLimited(`ide-agent:${clientKey(req)}`, 15, 5 * 60_000)) {
+  const session = await getSession();
+  if (!session) return json(401, { error: "Authentication required." });
+  if (
+    await rateLimitedPersistently(
+      `ide-agent:${session.organizationId}:${clientKey(req)}`,
+      15,
+      5 * 60_000
+    )
+  ) {
     return json(429, {
       error: "Too many requests from this connection in a short window. Wait a few minutes and try again.",
     });

@@ -1,10 +1,18 @@
 import { NextResponse } from "next/server";
 import { prisma } from '@/raw-engine/lib/prisma';
+import { getSession } from "@/lib/auth";
 
 export async function GET(req: Request) {
+  const session = await getSession();
+  if (!session) {
+    return NextResponse.json({ error: "Authentication required." }, { status: 401 });
+  }
   try {
     const { searchParams } = new URL(req.url);
     const search = searchParams.get("search") || "";
+    if (search.length > 100) {
+      return NextResponse.json({ error: "Search text must be 100 characters or fewer." }, { status: 400 });
+    }
 
     const records = await prisma.ingestedRecord.findMany({
       where: search

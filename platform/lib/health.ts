@@ -2,6 +2,7 @@ import { access } from "node:fs/promises";
 import { constants } from "node:fs";
 import net from "node:net";
 import path from "node:path";
+import { smtpConfigured } from "@/lib/email";
 import { prisma } from "@/lib/prisma";
 
 export type ServiceHealth = {
@@ -44,9 +45,9 @@ async function checkDatabase(): Promise<ServiceHealth> {
   }
   try {
     await prisma.$queryRaw`SELECT 1`;
-    return { status: "online", detail: "Neon PostgreSQL connection succeeded." };
+    return { status: "online", detail: "PostgreSQL connection succeeded." };
   } catch {
-    return { status: "offline", detail: "Neon PostgreSQL connection failed." };
+    return { status: "offline", detail: "PostgreSQL connection failed." };
   }
 }
 
@@ -82,11 +83,31 @@ async function checkStorage(): Promise<ServiceHealth> {
   }
 }
 
+async function checkSmtp(): Promise<ServiceHealth> {
+  if (!smtpConfigured()) {
+    return {
+      status: "offline",
+      detail: "SMTP sender, HELO hostname, public IP, port, or credentials are not configured.",
+    };
+  }
+  const socket = await checkTcpService(
+    process.env.SMTP_HOST,
+    process.env.SMTP_PORT || "587",
+    "SMTP server"
+  );
+  return socket.status === "online"
+    ? {
+        status: "online",
+        detail: "SMTP socket and warm-up settings are reachable. SPF, DKIM, DMARC, PTR, and blocklist status are not verified here.",
+      }
+    : socket;
+}
+
 export async function getPlatformHealth(): Promise<PlatformHealth> {
   const [database, engine, smtp, storage] = await Promise.all([
     checkDatabase(),
     checkTcpService(process.env.RAW_ENGINE_HOST, process.env.RAW_ENGINE_PORT, "Raw engine"),
-    checkTcpService(process.env.SMTP_HOST, process.env.SMTP_PORT || "25", "SMTP server"),
+    checkSmtp(),
     checkStorage(),
   ]);
   const services = { database, engine, smtp, storage };

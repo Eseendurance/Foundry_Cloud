@@ -6,7 +6,7 @@ export async function GET() {
       id: "tmpl_solar_telemetry",
       title: "Clean Energy & Solar Telemetry Ingestor",
       category: "IoT & Telemetry",
-      description: "Parses solar inverter telemetry streams, filters under-voltage spikes, and routes metrics to Neon PostgreSQL.",
+      description: "Parses sample telemetry, filters under-voltage spikes, and routes metrics to the configured PostgreSQL database.",
       dsl: `pipeline "SolarTelemetryPipeline" {
   version = "1.0"
 
@@ -25,35 +25,35 @@ export async function GET() {
     }
   }
 
-  destination "neon_db" {
+  destination "postgres_db" {
     target = "telemetry_records"
   }
 }`,
     },
     {
-      id: "tmpl_stripe_webhook",
-      title: "Stripe Payment Webhook Relay",
-      category: "Financial / E-Commerce",
-      description: "Validates incoming Stripe webhooks, drops failed transactions under $10, and formats order records.",
-      dsl: `pipeline "StripePaymentRelay" {
+      id: "tmpl_webhook_events",
+      title: "Webhook Event Logger",
+      category: "Webhooks",
+      description: "Filters incoming status and amount fields, then maps selected values into a database record.",
+      dsl: `pipeline "WebhookEventLogger" {
   version = "1.0"
 
-  source "stripe_webhook" {
+  source "webhook_events" {
     type = "http_endpoint"
-    path = "/v1/ingest/stripe"
+    path = "/v1/ingest/events"
   }
 
-  transform "FilterAndNormalize" {
+  transform "FilterAndMap" {
     filter = "payload.status == 'succeeded' && payload.amount >= 1000"
     map = {
-      charge_id = "payload.id"
-      amount_usd = "payload.amount / 100"
-      customer_email = "payload.billing_details.email"
+      event_id = "payload.id"
+      amount = "payload.amount"
+      event_type = "payload.type"
     }
   }
 
-  destination "neon_db" {
-    target = "stripe_transactions"
+  destination "postgres_db" {
+    target = "webhook_events"
   }
 }`,
     },
@@ -80,7 +80,7 @@ export async function GET() {
     }
   }
 
-  destination "neon_db" {
+  destination "postgres_db" {
     target = "security_audit_logs"
   }
 }`,

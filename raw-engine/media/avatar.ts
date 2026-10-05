@@ -10,7 +10,7 @@ export interface AvatarOptions {
 
 export class RawAvatarEngine {
   /**
-   * Generates a clean, watermark-free avatar canvas animation loop using standard HTML5 Canvas & Web Speech.
+   * Generates an avatar canvas animation loop using HTML5 Canvas and Web Speech.
    */
   static renderAvatarCanvas(
     canvas: HTMLCanvasElement,

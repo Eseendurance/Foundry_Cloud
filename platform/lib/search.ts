@@ -10,15 +10,15 @@ export type SearchHit = { id: string; name: string; created_at: string };
  * always current the moment a project is created or renamed.
  */
 export async function searchProjects(
-  userId: string,
+  organizationId: string,
   q: string
 ): Promise<SearchHit[]> {
   const trimmed = q.trim();
 
   if (!trimmed) {
     return query<SearchHit>(
-      "SELECT id, name, created_at FROM projects WHERE user_id = $1 ORDER BY created_at DESC LIMIT 20",
-      [userId]
+      "SELECT id, name, created_at FROM projects WHERE org_id = $1 ORDER BY created_at DESC LIMIT 20",
+      [organizationId]
     );
   }
 
@@ -29,7 +29,7 @@ export async function searchProjects(
       `
       SELECT id, name, created_at
       FROM projects
-      WHERE user_id = $1
+      WHERE org_id = $1
         AND (
           word_similarity($2, name) > 0.3
           OR to_tsvector('english', name) @@ plainto_tsquery('english', $2)
@@ -42,7 +42,7 @@ export async function searchProjects(
         ) DESC
       LIMIT 20
       `,
-      [userId, trimmed]
+      [organizationId, trimmed]
     );
   }
 
@@ -50,7 +50,7 @@ export async function searchProjects(
     `
     SELECT id, name, created_at
     FROM projects
-    WHERE user_id = $1
+    WHERE org_id = $1
       AND (
         to_tsvector('english', name) @@ plainto_tsquery('english', $2)
         OR name ILIKE '%' || $2 || '%'
@@ -58,6 +58,6 @@ export async function searchProjects(
     ORDER BY ts_rank(to_tsvector('english', name), plainto_tsquery('english', $2)) DESC
     LIMIT 20
     `,
-    [userId, trimmed]
+    [organizationId, trimmed]
   );
 }
